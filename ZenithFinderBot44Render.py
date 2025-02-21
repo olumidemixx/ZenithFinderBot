@@ -197,7 +197,7 @@ import asyncio
 async def setup_webhook(app: Application):
     """Setup webhook for the bot"""
     # Get the webhook URL from environment variable (you'll set this in Render)
-    WEBHOOK_URL = os.environ.get('WEBHOOK_URL', f'https://zenithfinderbot-1.onrender.com')
+    WEBHOOK_URL = os.environ.get('WEBHOOK_URL', f'https://zenithfinderbot.onrender.com')
     webhook_path = f"/webhook/{BOT_TOKEN}"
     webhook_url = f"{WEBHOOK_URL}{webhook_path}"
     
@@ -234,16 +234,6 @@ async def on_shutdown(app):
     await application.stop()
     await application.shutdown()
 
-from aiohttp import web
-
-async def root_handler(request):
-    return web.json_response({
-        "status": "running",
-        "message": "Service is up"
-    })
-
-app = web.Application()
-app.router.add_get('/', root_handler)
 
 def main():
     global application
