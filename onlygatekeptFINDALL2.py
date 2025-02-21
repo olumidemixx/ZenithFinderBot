@@ -29,7 +29,7 @@ def zenithfinderbot(list_of_tokens):
     all_addresses=[]
     for token in list_of_tokens:
         options = webdriver.ChromeOptions()
-        options.binary_location = "/usr/bin/google-chrome-stable" #/opt/google/chrome/google-chrome #"/usr/bin/google-chrome"
+        options.binary_location = /opt/google/chrome/google-chrome #"/usr/bin/google-chrome-stable"  #"/usr/bin/google-chrome"
         
         options.add_argument("--headless=new")  # Use the new headless mode
 
