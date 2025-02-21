@@ -216,9 +216,17 @@ async def handle_webhook(request):
 
 async def on_startup(app):
     global application
-    """Initialize bot and set up webhook on startup"""
-    webhook_path = await setup_webhook(application)
-    app.router.add_post(webhook_path, handle_webhook)
+    try:
+        await application.initialize()
+        await application.start()
+        """Initialize bot and set up webhook on startup"""
+        webhook_path = await setup_webhook(application)
+        app.router.add_post(webhook_path, handle_webhook)
+        logging.info(f"initialized")
+    except Exception as e:
+        logging.error(f"Startup failed: {e}")
+        await application.shutdown()
+        sys.exit(1)
 
 async def on_shutdown(app):
     """Cleanup on shutdown"""
