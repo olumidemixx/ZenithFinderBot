@@ -233,6 +233,17 @@ async def on_shutdown(app):
     await application.bot.delete_webhook()
     await application.stop()
     await application.shutdown()
+    
+from aiohttp import web
+
+async def root_handler(request):
+    return web.json_response({
+        "status": "running",
+        "message": "Service is up"
+    })
+
+app = web.Application()
+app.router.add_get('/', root_handler)
 
 
 def main():
