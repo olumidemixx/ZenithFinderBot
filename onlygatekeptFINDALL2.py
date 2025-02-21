@@ -28,10 +28,16 @@ import random
 def zenithfinderbot(list_of_tokens):
     all_addresses=[]
     for token in list_of_tokens:
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless=new")  # Use the new headless mode
+
+        # Initialize the Chrome driver using ChromeDriverManager
         service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        #service = Service(ChromeDriverManager().install())
 
     # Initialize Chrome driver using the service instance
-        driver = webdriver.Chrome(service=service)
+        #driver = webdriver.Chrome(service=service)
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
         driver.get("https://gatekept.io/token/"+token)
