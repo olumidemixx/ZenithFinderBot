@@ -1,0 +1,6 @@
+telegram 
+selenium
+webdriver_manager
+aiohttp
+pyngrok
+onlygatekeptFINDALL2
