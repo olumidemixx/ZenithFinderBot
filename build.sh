@@ -11,10 +11,10 @@ apt-get install -y wget unzip
 # Download and install Chrome
 echo "Installing Chrome..."
 wget -q https://dl-ssl.google.com/linux/linux_signing_key.pub
-sudo mv linux_signing_key.pub /etc/apt/trusted.gpg.d/google.asc
+mv linux_signing_key.pub /etc/apt/trusted.gpg.d/google.asc
 echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-sudo apt-get update
-sudo apt-get install -y google-chrome-stable
+apt-get update
+apt-get install -y google-chrome-stable
 
 # Verify Chrome installation and get version
 echo "Verifying Chrome installation..."
