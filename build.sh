@@ -5,8 +5,8 @@ echo "Starting installation process..."
 
 # Install required dependencies
 echo "Installing dependencies..."
-sudo apt-get update
-sudo apt-get install -y wget unzip
+apt-get update
+apt-get install -y wget unzip
 
 # Download and install Chrome
 echo "Installing Chrome..."
