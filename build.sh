@@ -1,52 +1,73 @@
 #!/bin/bash
 
-# Update package list
-sudo apt-get update
+# First, fix potential Windows line endings in this script
 
-# Install dependencies
-sudo apt-get install -y unzip wget
+sed -i 's/\r$//' build.sh
 
-# Install latest Chrome
-wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-sudo dpkg -i google-chrome-stable_current_amd64.deb
-sudo apt --fix-broken install -y
-rm google-chrome-stable_current_amd64.deb
+# Download and install Chrome
 
-# Get latest Chrome version
-CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | awk -F'.' '{print $1}')
+wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
 
-# Get matching ChromeDriver version
+echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
+
+apt-get update -y
+
+apt-get install -y google-chrome-stable
+
+# Install Chrome Driver
+
+CHROME_VERSION=$(google-chrome --version | awk '{ print $3 }' | awk -F'.' '{ print $1 }')
+
 CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
 
-# Install ChromeDriver
-wget "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
-unzip chromedriver_linux64.zip
-sudo mv chromedriver /usr/local/bin/
-sudo chmod +x /usr/local/bin/chromedriver
-rm chromedriver_linux64.zip
+wget -N "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
 
-# Verify installations
-echo "Chrome version:"
-google-chrome --version
-echo "ChromeDriver version:"
-chromedriver --version
+unzip chromedriver_linux64.zip
+
+chmod +x chromedriver
+
+mv -f chromedriver /usr/local/bin/chromedriver
+
+# Install Python dependencies
 
 pip install -r requirements.txt
 
 # Verify Chrome installation
+
 if ! command -v google-chrome &> /dev/null; then
+
     echo "Chrome is not installed"
+
     
+
 else
+
     echo "Chrome is installed:"
+
     google-chrome --version
+
 fi
 
 # Verify ChromeDriver installation
+
 if ! command -v chromedriver &> /dev/null; then
+
     echo "ChromeDriver is not installed"
+
     
+
 else
+
     echo "ChromeDriver is installed:"
+
     chromedriver --version
+
 fi
+
+# After Chrome installation
+
+google-chrome --version || echo "Error: $?"
+
+# After ChromeDriver installation
+
+ls -l /usr/local/bin/chromedriver || echo "Error: $?"
