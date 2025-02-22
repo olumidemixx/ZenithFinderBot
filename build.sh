@@ -1,73 +1,57 @@
 #!/bin/bash
+set -e  # Exit on error
 
-# First, fix potential Windows line endings in this script
+echo "Starting installation process..."
 
-sed -i 's/\r$//' build.sh
+# Install required dependencies
+echo "Installing dependencies..."
+sudo apt-get update
+sudo apt-get install -y wget unzip
 
 # Download and install Chrome
+echo "Installing Chrome..."
+wget -q https://dl-ssl.google.com/linux/linux_signing_key.pub
+sudo mv linux_signing_key.pub /etc/apt/trusted.gpg.d/google.asc
+echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+sudo apt-get update
+sudo apt-get install -y google-chrome-stable
 
-wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-
-echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
-
-apt-get update -y
-
-apt-get install -y google-chrome-stable
-
-# Install Chrome Driver
+# Verify Chrome installation and get version
+echo "Verifying Chrome installation..."
+if ! command -v google-chrome &> /dev/null; then
+    echo "ERROR: Chrome installation failed"
+    exit 1
+fi
 
 CHROME_VERSION=$(google-chrome --version | awk '{ print $3 }' | awk -F'.' '{ print $1 }')
+echo "Chrome version detected: $CHROME_VERSION"
 
+# Install ChromeDriver
+echo "Installing ChromeDriver..."
 CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+echo "ChromeDriver version to install: $CHROMEDRIVER_VERSION"
 
 wget -N "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
-
-unzip chromedriver_linux64.zip
-
+unzip -o chromedriver_linux64.zip
 chmod +x chromedriver
-
 mv -f chromedriver /usr/local/bin/chromedriver
 
-# Install Python dependencies
+# Clean up downloaded files
+rm -f chromedriver_linux64.zip
 
-pip install -r requirements.txt
+# Verify final installations
+echo "Final verification..."
+echo "Chrome version:"
+google-chrome --version
+echo "ChromeDriver version:"
+chromedriver --version
 
-# Verify Chrome installation
-
-if ! command -v google-chrome &> /dev/null; then
-
-    echo "Chrome is not installed"
-
-    
-
+# Install Python dependencies if requirements.txt exists
+if [ -f "requirements.txt" ]; then
+    echo "Installing Python dependencies..."
+    pip install -r requirements.txt
 else
-
-    echo "Chrome is installed:"
-
-    google-chrome --version
-
+    echo "No requirements.txt found, skipping Python dependencies"
 fi
 
-# Verify ChromeDriver installation
-
-if ! command -v chromedriver &> /dev/null; then
-
-    echo "ChromeDriver is not installed"
-
-    
-
-else
-
-    echo "ChromeDriver is installed:"
-
-    chromedriver --version
-
-fi
-
-# After Chrome installation
-
-google-chrome --version || echo "Error: $?"
-
-# After ChromeDriver installation
-
-ls -l /usr/local/bin/chromedriver || echo "Error: $?"
+echo "Installation complete!"
