@@ -1,19 +1,36 @@
 #!/bin/bash
-# First, fix potential Windows line endings in this script
-sed -i 's/\r$//' build.sh
-# Download and install Chrome
-wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
-apt-get update -y
-apt-get install -y google-chrome-stable
-# Install Chrome Driver
-CHROME_VERSION=$(google-chrome --version | awk '{ print $3 }' | awk -F'.' '{ print $1 }')
+
+# Update package list
+sudo apt-get update
+
+# Install dependencies
+sudo apt-get install -y unzip wget
+
+# Install latest Chrome
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo dpkg -i google-chrome-stable_current_amd64.deb
+sudo apt --fix-broken install -y
+rm google-chrome-stable_current_amd64.deb
+
+# Get latest Chrome version
+CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | awk -F'.' '{print $1}')
+
+# Get matching ChromeDriver version
 CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-wget -N "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+
+# Install ChromeDriver
+wget "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
 unzip chromedriver_linux64.zip
-chmod +x chromedriver
-mv -f chromedriver /usr/local/bin/chromedriver
-# Install Python dependencies
+sudo mv chromedriver /usr/local/bin/
+sudo chmod +x /usr/local/bin/chromedriver
+rm chromedriver_linux64.zip
+
+# Verify installations
+echo "Chrome version:"
+google-chrome --version
+echo "ChromeDriver version:"
+chromedriver --version
+
 pip install -r requirements.txt
 
 # Verify Chrome installation
