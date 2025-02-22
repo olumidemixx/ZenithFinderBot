@@ -16,6 +16,15 @@ mv -f chromedriver /usr/local/bin/chromedriver
 # Install Python dependencies
 pip install -r requirements.txt
 
+# Verify ChromeDriver installation
+if ! command -v chromedriver &> /dev/null; then
+    echo "ChromeDriver is not installed"
+    exit 1
+else
+    echo "ChromeDriver is installed:"
+    chromedriver --version
+fi
+
 # Verify Chrome installation
 if ! command -v google-chrome &> /dev/null; then
     echo "Chrome is not installed"
@@ -25,11 +34,3 @@ else
     google-chrome --version
 fi
 
-# Verify ChromeDriver installation
-if ! command -v chromedriver &> /dev/null; then
-    echo "ChromeDriver is not installed"
-    exit 1
-else
-    echo "ChromeDriver is installed:"
-    chromedriver --version
-fi
