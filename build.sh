@@ -3,6 +3,22 @@
 mkdir -p $HOME/chrome
 cd $HOME/chrome
 
+# Install necessary dependencies
+apt-get update && apt-get install -y \
+    libasound2 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libgbm1 \
+    libnss3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libxtst6 \
+    libxkbcommon0
+
 # Install Chrome
 echo "Installing Chrome..."
 wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
