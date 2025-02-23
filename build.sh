@@ -1,83 +1,67 @@
 #!/bin/bash
 
-# Function to check if a command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
+# Configuration
+REPO_OWNER="olumidemixx"
+REPO_NAME="ZenithFinderBot"
+CHROMEDRIVER_PATH="chromedriver"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${CHROMEDRIVER_PATH}"
 
-# Function to get Chrome version
-get_chrome_version() {
-    if command_exists google-chrome; then
-        google-chrome --version | cut -d ' ' -f 3
+# Function to check if ChromeDriver is already installed
+check_chromedriver() {
+    if [ -f "./chromedriver" ]; then
+        echo "ChromeDriver is already present in current directory"
+        chmod +x ./chromedriver
+        ./chromedriver --version
+        return 0
     else
-        echo "Chrome not found"
+        return 1
     fi
 }
 
-# Function to get ChromeDriver version
-get_chromedriver_version() {
-    if command_exists chromedriver; then
-        chromedriver --version | cut -d ' ' -f 2
-    else
-        echo "ChromeDriver not found"
-    fi
-}
-
-echo "Starting Chrome and ChromeDriver installation..."
-
-# Update package list
-apt-get update
-
-# Install dependencies
-apt-get install -y wget unzip
-
-# Install Chrome
-if ! command_exists google-chrome; then
-    echo "Installing Chrome..."
-    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
-    apt-get update
-    apt-get install -y google-chrome-stable
-else
-    echo "Chrome is already installed"
-fi
-
-# Get installed Chrome version
-CHROME_VERSION=$(get_chrome_version)
-echo "Chrome version: $CHROME_VERSION"
-
-# Extract major version number
-CHROME_MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d '.' -f 1)
-
-# Install matching ChromeDriver
-if ! command_exists chromedriver; then
-    echo "Installing ChromeDriver..."
-    CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION}")
-    wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-    unzip -q chromedriver_linux64.zip
-    mv chromedriver /usr/local/bin/
-    chmod +x /usr/local/bin/chromedriver
-    rm chromedriver_linux64.zip
-else
-    echo "ChromeDriver is already installed"
-fi
-
-# Get installed ChromeDriver version
-CHROMEDRIVER_VERSION=$(get_chromedriver_version)
-echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
-
-# Verify installations
-echo -e "\nVerification:"
-echo "Chrome installation status: $(command_exists google-chrome && echo 'Installed' || echo 'Not installed')"
-echo "ChromeDriver installation status: $(command_exists chromedriver && echo 'Installed' || echo 'Not installed')"
-
-# Test Chrome and ChromeDriver
-echo -e "\nTesting Chrome and ChromeDriver..."
-if command_exists google-chrome && command_exists chromedriver; then
-    echo "Both Chrome and ChromeDriver are installed and accessible"
-    google-chrome --version
-    chromedriver --version
-else
-    echo "Installation verification failed"
+# Function to download ChromeDriver from GitHub
+download_chromedriver() {
+    echo "Downloading ChromeDriver from your GitHub repository..."
     
+    # Download the ChromeDriver
+    if curl -L -o chromedriver "$GITHUB_RAW_URL"; then
+        echo "ChromeDriver downloaded successfully"
+        
+        # Make it executable
+        chmod +x chromedriver
+        
+        # Verify the download
+        if ./chromedriver --version; then
+            echo "ChromeDriver installation verified successfully"
+            return 0
+        else
+            echo "Error: ChromeDriver verification failed"
+            return 1
+        fi
+    else
+        echo "Error: Failed to download ChromeDriver"
+        return 1
+    fi
+}
+
+# Main script execution
+echo "Checking for existing ChromeDriver..."
+
+if ! check_chromedriver; then
+    echo "ChromeDriver not found. Downloading from GitHub..."
+    if download_chromedriver; then
+        echo "ChromeDriver setup completed successfully!"
+    else
+        echo "ChromeDriver setup failed!"
+        
+    fi
 fi
+
+# Install Python dependencies if requirements.txt exists
+if [ -f "requirements.txt" ]; then
+    echo "Installing Python dependencies..."
+    pip install -r requirements.txt
+else
+    echo "No requirements.txt found, skipping Python dependencies"
+fi
+
+echo "Installation complete!"
