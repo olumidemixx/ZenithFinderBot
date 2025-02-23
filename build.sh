@@ -3,6 +3,18 @@
 # Exit on any error
 set -e
 
+echo "Starting setup process..."
+
+# Install Python requirements first
+echo "Installing Python requirements..."
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt
+else
+    echo "Warning: requirements.txt not found!"
+    # Install minimum required packages for Selenium
+    pip install selenium webdriver_manager
+fi
+
 echo "Starting Chrome and ChromeDriver installation..."
 
 # Create a directory for the installations
@@ -40,6 +52,10 @@ EOL
 # Verify installations
 echo "Verifying installations..."
 
+# Check Python packages
+echo "Checking Python packages..."
+pip list
+
 # Check Chrome version
 if [ -f "$HOME/chrome/usr/bin/google-chrome" ]; then
     CHROME_VERSION=$($HOME/chrome/usr/bin/google-chrome --version)
@@ -61,5 +77,3 @@ fi
 echo "Installation completed successfully!"
 echo "Don't forget to source the environment variables before running your tests:"
 echo "source \$HOME/chrome/env.sh"
-
-pip install -r requirements.txt
