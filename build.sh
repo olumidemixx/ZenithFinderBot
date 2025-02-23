@@ -54,3 +54,13 @@ else
     echo "Contents of chrome directory:"
     ls -R $HOME/chrome
 fi
+
+# Check Chrome version
+if [ -f "$HOME/chrome/usr/bin/google-chrome" ]; then
+    CHROME_VERSION=$($HOME/chrome/usr/bin/google-chrome --version)
+    echo "Chrome installed successfully: $CHROME_VERSION"
+else
+    echo "Chrome installation failed!"
+    
+fi
+
