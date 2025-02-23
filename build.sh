@@ -1,66 +1,80 @@
 #!/bin/bash
-# Create chrome directory
+
+# Exit on any error
+set -e
+
+echo "Starting setup process..."
+
+# Install Python requirements first
+echo "Installing Python requirements..."
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt
+else
+    echo "Warning: requirements.txt not found!"
+    # Install minimum required packages for Selenium
+    pip install selenium webdriver_manager
+fi
+
+echo "Starting Chrome and ChromeDriver installation..."
+
+# Create a directory for the installations
 mkdir -p $HOME/chrome
 cd $HOME/chrome
 
-# Install necessary dependencies
-apt-get update && apt-get install -y \
-    libasound2 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libgbm1 \
-    libnss3 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libxtst6 \
-    libxkbcommon0
-
-# Install Chrome
+# Install Chrome directly from the binary
 echo "Installing Chrome..."
-wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-# Extract and verify the extraction
+wget -i https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 dpkg -x google-chrome-stable_current_amd64.deb $HOME/chrome
-if [ $? -ne 0 ]; then
-    echo "Failed to extract Chrome package"
-    exit 1
-fi
+apt-get install -f
+goggle-chrome
 
-# Clean up the deb file
-rm google-chrome-stable_current_amd64.deb
+# Add Chrome binary to PATH
+export PATH=$HOME/chrome:$PATH
+export CHROME_PATH=$HOME/chrome/usr/bin/google-chrome
 
-# Find the actual chrome binary
-CHROME_BINARY=$(find $HOME/chrome -name "google-chrome" -type f)
+# Install ChromeDriver
+echo "Installing ChromeDriver..."
+wget -q https://storage.googleapis.com/chrome-for-testing-public/133.0.6943.126/linux64/chromedriver-linux64.zip
+unzip chromedriver-linux64.zip
+mkdir -p $HOME/chrome/driver
+mv chromedriver-linux64/chromedriver $HOME/chrome/driver/
+chmod +x $HOME/chrome/driver/chromedriver
+rm -rf chromedriver-linux64.zip chromedriver-linux64
 
-if [ -n "$CHROME_BINARY" ]; then
-    # Export the paths
-    export PATH=$(dirname "$CHROME_BINARY"):$PATH
-    export CHROME_PATH="$CHROME_BINARY"
-    
-    # Verify installation
-    CHROME_VERSION=$("$CHROME_BINARY" --version 2>/dev/null)
-    if [ -n "$CHROME_VERSION" ]; then
-        echo "Chrome installed successfully: $CHROME_VERSION"
-        echo "Chrome binary location: $CHROME_BINARY"
-    else
-        echo "Chrome binary found but version check failed"
-    fi
-else
-    echo "Chrome binary not found after extraction!"
-    echo "Contents of chrome directory:"
-    ls -R $HOME/chrome
-fi
+# Add ChromeDriver to PATH
+export PATH=$HOME/chrome/driver:$PATH
+
+# Create a script to set environment variables
+cat > $HOME/chrome/env.sh << EOL
+export PATH=$HOME/chrome/:$HOME/chrome/driver:\$PATH
+export CHROME_PATH=$HOME/chrome/usr/bin/google-chrome
+EOL
+
+# Verify installations
+echo "Verifying installations..."
+
+# Check Python packages
+echo "Checking Python packages..."
+#pip list
 
 # Check Chrome version
-if [ -f "$HOME/chrome/usr/bin/google-chrome" ]; then
-    CHROME_VERSION=$($HOME/chrome/usr/bin/google-chrome --version)
+if [ -f "$HOME/chrome/google-chrome" ]; then
+    CHROME_VERSION=$($HOME/chrome/google-chrome --version)
     echo "Chrome installed successfully: $CHROME_VERSION"
 else
     echo "Chrome installation failed!"
     
 fi
 
+# Check ChromeDriver version
+if [ -f "$HOME/chrome/driver/chromedriver" ]; then
+    CHROMEDRIVER_VERSION=$($HOME/chrome/driver/chromedriver --version)
+    echo "ChromeDriver installed successfully: $CHROMEDRIVER_VERSION"
+else
+    echo "ChromeDriver installation failed!"
+    
+fi
+
+echo "Installation completed successfully!"
+echo "Don't forget to source the environment variables before running your tests:"
+echo "source \$HOME/chrome/env.sh"
