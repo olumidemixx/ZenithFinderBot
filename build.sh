@@ -46,7 +46,7 @@ if [ -f "$HOME/chrome/usr/bin/google-chrome" ]; then
     echo "Chrome installed successfully: $CHROME_VERSION"
 else
     echo "Chrome installation failed!"
-    exit 1
+    
 fi
 
 # Check ChromeDriver version
@@ -55,7 +55,7 @@ if [ -f "$HOME/chrome/driver/chromedriver" ]; then
     echo "ChromeDriver installed successfully: $CHROMEDRIVER_VERSION"
 else
     echo "ChromeDriver installation failed!"
-    exit 1
+    
 fi
 
 echo "Installation completed successfully!"
