@@ -1,75 +1,49 @@
 #!/bin/bash
 
-# Configuration
-REPO_OWNER="olumidemixx"
-REPO_NAME="ZenithFinderBot"
-CHROMEDRIVER_PATH="chromedriver"
-GITHUB_RAW_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${CHROMEDRIVER_PATH}"
+# Exit on any error
+set -e
 
-# Function to check if ChromeDriver is already installed
-check_chromedriver() {
-    if [ -f "./chromedriver" ]; then
-        echo "ChromeDriver is already present in current directory"
-        chmod +x ./chromedriver
-        if ./chromedriver --version > /dev/null 2>&1; then
-            echo "ChromeDriver version check successful:"
-            ./chromedriver --version
-            return 0
-        else
-            echo "ChromeDriver version check failed.  Possibly corrupted."
-            return 1
-        fi
-    else
-        return 1
-    fi
-}
+echo "Starting Chrome and ChromeDriver installation..."
 
-# Function to download ChromeDriver from GitHub
-download_chromedriver() {
-    echo "Downloading ChromeDriver from your GitHub repository..."
+# Install dependencies
+apt-get update
+apt-get install -y wget unzip
 
-    # Download the ChromeDriver
-    if curl -L -o chromedriver "$GITHUB_RAW_URL"; then
-        echo "ChromeDriver downloaded successfully"
+# Install Chrome
+echo "Installing Chrome..."
+wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+apt-get install -y ./google-chrome-stable_current_amd64.deb
+rm google-chrome-stable_current_amd64.deb
 
-        # Make it executable
-        chmod +x chromedriver
+# Install ChromeDriver
+echo "Installing ChromeDriver..."
+wget -q https://storage.googleapis.com/chrome-for-testing-public/133.0.6943.126/linux64/chromedriver-linux64.zip
+unzip chromedriver-linux64.zip
+mv chromedriver-linux64/chromedriver /usr/local/bin/
+chmod +x /usr/local/bin/chromedriver
+rm -rf chromedriver-linux64.zip chromedriver-linux64
 
-        # Verify the download
-        if ./chromedriver --version > /dev/null 2>&1; then
-            echo "ChromeDriver installation verified successfully"
-            ./chromedriver --version
-            return 0
-        else
-            echo "Error: ChromeDriver verification failed"
-            return 1
-        fi
-    else
-        echo "Error: Failed to download ChromeDriver"
-        return 1
-    fi
-}
+# Verify installations
+echo "Verifying installations..."
 
-# Main script execution
-echo "Checking for existing ChromeDriver..."
-
-if ! check_chromedriver; then
-    echo "ChromeDriver not found. Downloading from GitHub..."
-    if download_chromedriver; then
-        echo "ChromeDriver setup completed successfully!"
-    else
-        echo "ChromeDriver setup failed!"
-
-    fi
+# Check Chrome version
+if command -v google-chrome &> /dev/null; then
+    CHROME_VERSION=$(google-chrome --version)
+    echo "Chrome installed successfully: $CHROME_VERSION"
 else
-    echo "ChromeDriver already installed."
+    echo "Chrome installation failed!"
+    exit 1
 fi
 
-#Final verification
-if check_chromedriver; then
-    echo "ChromeDriver verified successfully after script execution."
+# Check ChromeDriver version
+if command -v chromedriver &> /dev/null; then
+    CHROMEDRIVER_VERSION=$(chromedriver --version)
+    echo "ChromeDriver installed successfully: $CHROMEDRIVER_VERSION"
 else
-    echo "ChromeDriver verification failed after script execution."
+    echo "ChromeDriver installation failed!"
+    exit 1
 fi
+
+echo "Installation completed successfully!"
 
 pip install -r requirements.txt
