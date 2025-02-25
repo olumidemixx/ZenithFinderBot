@@ -63,7 +63,7 @@ if $STORAGE_DIR/chromedriver/chromedriver-linux64/chromedriver --version >/dev/n
     echo "...Using ChromeDriver from cache"
 else
     echo "not installed"
-
+fi
 
 
 # Return to original directory
