@@ -1,75 +1,77 @@
-#!/bin/bash
-set -e  # Exit immediately if a command exits with a non-zero status
+#!/usr/bin/env bash
+# exit on error
+set -o errexit
 
-# Define the URLs for Chrome and ChromeDriver
-CHROME_URL="https://storage.googleapis.com/chrome-for-testing-public/133.0.6943.126/linux64/chrome-linux64.zip"
+STORAGE_DIR=/opt/render/project/.render
 CHROMEDRIVER_URL="https://storage.googleapis.com/chrome-for-testing-public/133.0.6943.126/linux64/chromedriver-linux64.zip"
 
-# Define installation directories
-INSTALL_DIR="/opt/render/project/.render"
-CHROME_DIR="${INSTALL_DIR}/chrome"
-CHROMEDRIVER_DIR="${INSTALL_DIR}/chromedriver"
-
-echo "Starting Selenium environment setup..."
-
-# Create installation directories
-echo "Creating installation directories..."
-mkdir -p $CHROME_DIR
-mkdir -p $CHROMEDRIVER_DIR
-
-# Install required dependencies
-echo "Installing dependencies..."
-apt-get update
-apt-get install -y wget unzip libglib2.0-0 libnss3 libgconf-2-4 libfontconfig1
-
-# Download and install Chrome
-echo "Downloading Chrome..."
-wget $CHROME_URL -O /tmp/chrome.zip
-echo "Extracting Chrome..."
-unzip -o /tmp/chrome.zip -d /tmp
-cp -r /tmp/chrome-linux64/* $CHROME_DIR/
-chmod +x $CHROME_DIR/chrome
-
-# Download and install ChromeDriver
-echo "Downloading ChromeDriver..."
-wget $CHROMEDRIVER_URL -O /tmp/chromedriver.zip
-echo "Extracting ChromeDriver..."
-unzip -o /tmp/chromedriver.zip -d /tmp
-cp -r /tmp/chromedriver-linux64/* $CHROMEDRIVER_DIR/
-chmod +x $CHROMEDRIVER_DIR/chromedriver
-
-# Add to PATH for the current session
-export PATH=$PATH:$CHROME_DIR:$CHROMEDRIVER_DIR
-
-# Create symbolic links to make Chrome and ChromeDriver accessible system-wide
-echo "Creating symbolic links..."
-ln -sf $CHROME_DIR/chrome /usr/local/bin/chrome
-ln -sf $CHROMEDRIVER_DIR/chromedriver /usr/local/bin/chromedriver
-
-# Clean up
-echo "Cleaning up temporary files..."
-rm -rf /tmp/chrome.zip /tmp/chromedriver.zip /tmp/chrome-linux64 /tmp/chromedriver-linux64
-
-# Verify installation
-echo "Verifying Chrome installation..."
-if chrome --version; then
-    echo "Chrome installed successfully!"
+pip install -r requirements.txt
+# Add verification to check if Chrome is already installed and working
+if [[ -d $STORAGE_DIR/chrome ]] && [[ -f $STORAGE_DIR/chrome/opt/google/chrome/chrome ]]; then
+  echo "Verifying Chrome installation..."
+  # Try to run Chrome with --version flag
+  if $STORAGE_DIR/chrome/opt/google/chrome/chrome --version --headless >/dev/null 2>&1; then
+    echo "✓ Chrome is properly installed and working"
+    echo "...Using Chrome from cache"
+  else
+    echo "× Chrome installation found but not working properly, reinstalling..."
+    rm -rf $STORAGE_DIR/chrome
+    mkdir -p $STORAGE_DIR/chrome
+    cd $STORAGE_DIR/chrome
+    wget -P ./ https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    dpkg -x ./google-chrome-stable_current_amd64.deb $STORAGE_DIR/chrome
+    rm ./google-chrome-stable_current_amd64.deb
+  fi
 else
-    echo "Chrome installation failed!"
-    exit 1
+  echo "...Downloading Chrome"
+  mkdir -p $STORAGE_DIR/chrome
+  cd $STORAGE_DIR/chrome
+  wget -P ./ https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+  dpkg -x ./google-chrome-stable_current_amd64.deb $STORAGE_DIR/chrome
+  rm ./google-chrome-stable_current_amd64.deb
 fi
 
-echo "Verifying ChromeDriver installation..."
-if chromedriver --version; then
-    echo "ChromeDriver installed successfully!"
+# Add ChromeDriver installation and verification
+if [[ -f $STORAGE_DIR/chromedriver/chromedriver-linux64/chromedriver ]]; then
+  echo "Verifying ChromeDriver installation..."
+  # Try to run ChromeDriver with --version flag
+  if $STORAGE_DIR/chromedriver/chromedriver-linux64/chromedriver --version >/dev/null 2>&1; then
+    echo "✓ ChromeDriver is properly installed and working"
+    echo "...Using ChromeDriver from cache"
+  else
+    echo "× ChromeDriver installation found but not working properly, reinstalling..."
+    rm -rf $STORAGE_DIR/chromedriver
+    mkdir -p $STORAGE_DIR/chromedriver
+    cd $STORAGE_DIR/chromedriver
+    echo "...Downloading ChromeDriver"
+    wget -q -O chromedriver.zip $CHROMEDRIVER_URL
+    unzip -q chromedriver.zip
+    chmod +x chromedriver-linux64/chromedriver
+    rm chromedriver.zip
+  fi
 else
-    echo "ChromeDriver installation failed!"
-    exit 1
+  echo "...Downloading ChromeDriver"
+  mkdir -p $STORAGE_DIR/chromedriver
+  cd $STORAGE_DIR/chromedriver
+  wget -q -O chromedriver.zip $CHROMEDRIVER_URL
+  unzip -q chromedriver.zip
+  chmod +x chromedriver-linux64/chromedriver
+  rm chromedriver.zip
 fi
 
-# Create a .env file with paths (can be used by your application)
-echo "Creating environment file..."
-echo "CHROME_PATH=$CHROME_DIR/chrome" > .env
-echo "CHROMEDRIVER_PATH=$CHROMEDRIVER_DIR/chromedriver" >> .env
+if $STORAGE_DIR/chromedriver/chromedriver-linux64/chromedriver --version >/dev/null 2>&1; then
+    echo "✓ ChromeDriver is properly installed and working"
+    echo "...Using ChromeDriver from cache"
+else
+    echo "not installed"
+fi
 
-echo "Selenium environment setup completed successfully!"
+
+
+# Return to original directory
+cd $HOME/project/src
+
+# be sure to add Chrome and ChromeDriver locations to the PATH as part of your Start Command
+# export PATH="${PATH}:/opt/render/project/.render/chrome/opt/google/chrome:/opt/render/project/.render/chromedriver/chromedriver-linux64"
+
+# add your own build commands...
