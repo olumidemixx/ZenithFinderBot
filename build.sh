@@ -83,8 +83,10 @@ echo "-----------------------------------"
 echo "Checking version compatibility..."
 #CHROME_VERSION=$(get_chrome_version | cut -d " " -f 3 | cut -d "." -f 1)
 #CHROMEDRIVER_VERSION=$(get_chromedriver_version | cut -d " " -f 2 | cut -d "." -f 1)
-CHROME_VERSION=$(get_chrome_version)
-CHROMEDRIVER_VERSION=$(get_chromedriver_version)
+#CHROME_VERSION=$(get_chrome_version)
+#CHROMEDRIVER_VERSION=$(get_chromedriver_version)
+CHROME_VERSION=$(get_chrome_version | cut -d ":" -f 2 | xargs)
+CHROMEDRIVER_VERSION=$(get_chromedriver_version | cut -d ":" -f 2 | xargs)
 
 if [[ "$CHROME_VERSION" == "$CHROMEDRIVER_VERSION" ]]; then
   echo "✓ Chrome and ChromeDriver major versions match: $CHROME_VERSION"
