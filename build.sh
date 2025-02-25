@@ -70,7 +70,6 @@ fi
 
 # Return to original directory
 cd $HOME/project/src
-apt install chromium
 
 # be sure to add Chrome and ChromeDriver locations to the PATH as part of your Start Command
 # export PATH="${PATH}:/opt/render/project/.render/chrome/opt/google/chrome:/opt/render/project/.render/chromedriver/chromedriver-linux64"
