@@ -35,11 +35,8 @@ def zenithfinderbot(list_of_tokens):
         #options.binary_location = '/opt/render/project/.render/chromedriver/chromedriver-linux64/chromedriver'#"/usr/bin/google-chrome"
         #/opt/google/chrome/google-chrome #"/usr/bin/google-chrome-stable"
         options.add_argument("--headless=new")  # Use the new headless mode
-        chromedriver_path = "/opt/render/project/.render/chromedriver/chromedriver-linux64/chromedriver"
-
-
-        # Initialize the Chrome driver using ChromeDriverManager
-        service = Service(executable_path=chromedriver_path)
+        chromedriver_version = "133.0.6943.126"
+        service = Service(ChromeDriverManager(version=chromedriver_version).install())
         driver = webdriver.Chrome(service=service, options=options)
         #service = Service(ChromeDriverManager().install())
 
