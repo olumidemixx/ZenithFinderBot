@@ -58,6 +58,14 @@ else
   rm chromedriver.zip
 fi
 
+if $STORAGE_DIR/chromedriver/chromedriver-linux64/chromedriver --version >/dev/null 2>&1; then
+    echo "✓ ChromeDriver is properly installed and working"
+    echo "...Using ChromeDriver from cache"
+else
+    echo "not installed"
+
+
+
 # Return to original directory
 cd $HOME/project/src
 
