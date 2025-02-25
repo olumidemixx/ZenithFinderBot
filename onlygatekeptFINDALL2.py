@@ -30,7 +30,7 @@ def zenithfinderbot(list_of_tokens):
     all_addresses=[]
     for token in list_of_tokens:
         options = webdriver.ChromeOptions()
-        options.binary_location = os.getenv("/opt/render/project/.render/chrome/opt/google/chrome/chrome")
+        options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
         #options.binary_location = os.getenv('CHROME_PATH')
         #options.binary_location = os.getenv('/opt/render/project/.render/chromedriver/chromedriver-linux64/chromedriver')#"/usr/bin/google-chrome"
         #/opt/google/chrome/google-chrome #"/usr/bin/google-chrome-stable"
