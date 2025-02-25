@@ -4,7 +4,7 @@ set -o errexit
 
 STORAGE_DIR=/opt/render/project/.render
 CHROMEDRIVER_URL="https://storage.googleapis.com/chrome-for-testing-public/133.0.6943.126/linux64/chromedriver-linux64.zip"
-apt install chromium
+
 pip install -r requirements.txt
 # Add verification to check if Chrome is already installed and working
 if [[ -d $STORAGE_DIR/chrome ]] && [[ -f $STORAGE_DIR/chrome/opt/google/chrome/chrome ]]; then
@@ -67,8 +67,10 @@ else
 fi
 
 
+
 # Return to original directory
 cd $HOME/project/src
+apt install chromium
 
 # be sure to add Chrome and ChromeDriver locations to the PATH as part of your Start Command
 # export PATH="${PATH}:/opt/render/project/.render/chrome/opt/google/chrome:/opt/render/project/.render/chromedriver/chromedriver-linux64"
