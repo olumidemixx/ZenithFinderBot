@@ -67,7 +67,8 @@ def zenithfinderbot(list_of_tokens):
                         time.sleep(random.uniform(0.8,2.5))  # Wait for clipboard to be updated
 
                         # Get clipboard content
-                        address = pyperclip.paste()
+                        #address = pyperclip.paste()
+                        address = copy_buttons.text
                         if address:
                             addresses.append(address)
                             #print(f"Copied address {i}: {address}")
@@ -128,7 +129,8 @@ def zenithfinderbot(list_of_tokens):
                         time.sleep(random.uniform(0.8,2.5))  # Wait for clipboard to be updated
 
                         # Get clipboard content
-                        address = pyperclip.paste()
+                        #address = pyperclip.paste()
+                        address = copy_buttons.text
                         if address:
                             addresses.append(address)
                             #print(f"Copied address {i}: {address}")
