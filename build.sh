@@ -2,7 +2,7 @@
 # exit on error
 set -o errexit
 STORAGE_DIR=/opt/render/project/.render
-CHROMEDRIVER_URL="https://storage.googleapis.com/chrome-for-testing-public/133.0.6943.126/linux64/chromedriver-linux64.zip"
+CHROMEDRIVER_URL="https://storage.googleapis.com/chrome-for-testing-public/134.0.6998.23/linux64/chromedriver-linux64.zip"#"https://storage.googleapis.com/chrome-for-testing-public/133.0.6943.126/linux64/chromedriver-linux64.zip"
 pip install -r requirements.txt
 
 # Function to extract and display Chrome version
