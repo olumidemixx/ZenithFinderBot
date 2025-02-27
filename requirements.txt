@@ -1,11 +1,11 @@
 telegram 
-selenium
-webdriver_manager
+
+
 aiohttp
 pyngrok
 python-telegram-bot
 python-telegram-bot[webhooks]
 flask
 flask[async]
-pyperclip
+
 urllib3
