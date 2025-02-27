@@ -8,7 +8,7 @@ import asyncio
 from typing import List, Set, Dict
 import time
 from concurrent.futures import ThreadPoolExecutor
-from onlygatekeptFINDALL2 import zenithfinderbot
+from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
