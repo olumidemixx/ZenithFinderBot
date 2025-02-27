@@ -1,4 +1,5 @@
 telegram 
+requests
 
 
 aiohttp
