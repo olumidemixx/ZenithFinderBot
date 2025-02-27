@@ -436,7 +436,7 @@ def zenithfinderbot(token_addresses):
             return(common_addresses)
         return(common_addresses)
     
-    common_addresses.clear()
+    
     
 
     #print(common_addresses)
@@ -444,4 +444,4 @@ def zenithfinderbot(token_addresses):
 #if __name__ == "__main__":
    # main()
    
-print(zenithfinderbot(['CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump','2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump']))
+#print(zenithfinderbot(['CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump','2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump']))
