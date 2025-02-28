@@ -4,7 +4,7 @@ from datetime import datetime
 from collections import defaultdict
 import time
 all_wallets = []
-def find_best_traders(token_address, api_key, limit=100, skip_transactions=3000, max_pages=30):
+def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=30):
     """
     Find the best traders for a specific Solana token using Helius API,
     starting after a specific number of transactions
@@ -384,9 +384,10 @@ def zenithfinderbot(token_addresses):
     api_key = '9cace635-de24-4fe6-8a42-db3f605b77fc'
     
     for token_address in token_addresses:
+        time.sleep(5)
         
         # Skip the first 100,000 transactions
-        skip_count = 3000
+        skip_count = 1
         
         # Find the best traders after skipping transactions
         best_traders = find_best_traders(token_address, api_key, skip_transactions=skip_count)
