@@ -1,22 +1,22 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from keep_alive import keep_alive
-import flask
-
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 import asyncio
 from typing import List, Set, Dict
 import time
 from concurrent.futures import ThreadPoolExecutor
 from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from aiohttp import web
-from pyngrok import ngrok
-import logging
-import sys
 import os
 
 BOT_TOKEN = '7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
-PORT = int(os.environ.get('PORT', 8080))
 
 # Configure logging
 logging.basicConfig(
@@ -147,6 +147,10 @@ async def list_addresses(update: Update, context: ContextTypes.DEFAULT_TYPE):
             results = await checker.check_addresses_async(addresses)
             result_message = "Here's the List of Good Addresses and the number of Common Tokens:\n\n"
             for addr, count in results.items():
+                await update.message.reply_text(f"{addr} and {count}")
+                if addr or count is None:
+                    pass
+                    #await update.message.reply_text(f"An error occured", parse_mode='MarkdownV2')
                 result_message += f"Address: `{addr}`\nNumber of common tokens: {count}\n\n"
             await update.message.reply_text(result_message, parse_mode='MarkdownV2')
             await update.message.reply_text("Program Completed")
@@ -180,27 +184,8 @@ I'll advise you input between 8 - 10 tokens to get the common addresses between 
 You can then use tools like Gmgn website/bot, Cielo and so on to check the winrate and other qualities of these common addresses"""
     
     await update.message.reply_text(help_text)
-    
-    
-    
-    
-from aiohttp import web
-from pyngrok import ngrok
-import logging
-import sys
-import asyncio
 
-async def setup_webhook(app: Application):
-    """Setup webhook for the bot"""
-    # Get the webhook URL from environment variable (you'll set this in Render)
-    WEBHOOK_URL = 'https://zenithfinderbot-1.onrender.com/telegram'
-    #webhook_path = f"/webhook/{BOT_TOKEN}"
-    #webhook_url = f"{WEBHOOK_URL}{webhook_path}"
-    
-    #await app.bot.set_webhook(url=webhook_url)
-    await app.bot.set_webhook(url=WEBHOOK_URL)
-    return webhook_path
-
+# Webhook handler
 async def handle_webhook(request):
     """Handle incoming webhook requests"""
     try:
@@ -211,37 +196,36 @@ async def handle_webhook(request):
         logging.error(f"Error processing update: {e}")
         return web.Response(status=500)
 
+async def setup_webhook(app, bot_token, webhook_url):
+    """Setup the webhook for the Telegram bot"""
+    webhook_path = f"/{bot_token}"
+    
+    # Register the webhook handler
+    app.router.add_post(webhook_path, handle_webhook)
+    
+    # Set the webhook on the Telegram side
+    await application.bot.set_webhook(url=webhook_url + webhook_path)
+    logging.info(f"Webhook set to {webhook_url + webhook_path}")
+
 async def on_startup(app):
-    global application
-    try:
-        await application.initialize()
-        await application.start()
-        """Initialize bot and set up webhook on startup"""
-        webhook_path = await setup_webhook(application)
-        app.router.add_post(webhook_path, handle_webhook)
-        logging.info(f"initialized")
-    except Exception as e:
-        logging.error(f"Startup failed: {e}")
-        await application.shutdown()
-        sys.exit(1)
+    """Initialize the bot and set up the webhook on startup"""
+    # Get the webhook URL from environment variables (set by Render)
+    webhook_url = 'https://zenithfinderbot-1.onrender.com'
+    
+    # Initialize the application
+    await application.initialize()
+    await application.start()
+    
+    # Setup the webhook
+    await setup_webhook(app, BOT_TOKEN, webhook_url)
+    logging.info(f"Bot started and webhook set up at {webhook_url}")
 
 async def on_shutdown(app):
-    """Cleanup on shutdown"""
+    """Clean up resources on shutdown"""
     await application.bot.delete_webhook()
     await application.stop()
     await application.shutdown()
-    
-from aiohttp import web
-
-async def root_handler(request):
-    return web.json_response({
-        "status": "running",
-        "message": "Service is up"
-    })
-
-app = web.Application()
-app.router.add_get('/', root_handler)
-
+    logging.info("Bot shut down")
 
 def main():
     global application
@@ -255,13 +239,16 @@ def main():
     application.add_handler(CommandHandler("list", list_addresses))
     application.add_handler(CommandHandler("help", help))
 
-    # Setup web application
-    web_app = web.Application()
-    web_app.on_startup.append(on_startup)
-    web_app.on_shutdown.append(on_shutdown)
-
-    # Start the web server
-    web.run_app(web_app, host='0.0.0.0', port=PORT)
+    # Create the web application
+    app = web.Application()
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
+    
+    # Get port from environment variable (Render sets this)
+    port = int(os.environ.get('PORT', 8080))
+    
+    # Run the application
+    web.run_app(app, host='0.0.0.0', port=port)
 
 if __name__ == '__main__':
     main()
