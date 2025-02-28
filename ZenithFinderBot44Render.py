@@ -9,6 +9,9 @@ from concurrent.futures import ThreadPoolExecutor
 from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
 
 from aiohttp import web
+from pyngrok import ngrok
+import logging
+import sys
 import os
 
 BOT_TOKEN = '7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
@@ -179,8 +182,22 @@ I'll advise you input between 8 - 10 tokens to get the common addresses between 
 You can then use tools like Gmgn website/bot, Cielo and so on to check the winrate and other qualities of these common addresses"""
     
     await update.message.reply_text(help_text)
+    
+    
+    
+    
+from aiohttp import web
+from pyngrok import ngrok
+import logging
+import sys
+import asyncio
 
-# Webhook handler
+async def setup_webhook(application: Application, webhook_url: str):
+    """Setup webhook for the bot"""
+    webhook_path = f"/{BOT_TOKEN}"
+    await application.bot.set_webhook(url=webhook_url + webhook_path)
+    return webhook_path
+
 async def handle_webhook(request):
     """Handle incoming webhook requests"""
     try:
@@ -191,36 +208,41 @@ async def handle_webhook(request):
         logging.error(f"Error processing update: {e}")
         return web.Response(status=500)
 
-async def setup_webhook(app, bot_token, webhook_url):
-    """Setup the webhook for the Telegram bot"""
-    webhook_path = f"/{bot_token}"
+async def on_startup(web_app):
+    """Setup webhook on startup"""
+    global application
     
-    # Register the webhook handler
-    app.router.add_post(webhook_path, handle_webhook)
-    
-    # Set the webhook on the Telegram side
-    await application.bot.set_webhook(url=webhook_url + webhook_path)
-    logging.info(f"Webhook set to {webhook_url + webhook_path}")
+    try:
+        # Initialize the application
+        await application.initialize()
+        await application.start()
+        
+        # Use Render URL from environment variable
+        webhook_url = os.environ.get("RENDER_EXTERNAL_URL")
+        if not webhook_url:
+            logging.error("RENDER_EXTERNAL_URL environment variable not found")
+            await application.shutdown()
+            sys.exit(1)
+            
+        logging.info(f"Using Render URL: {webhook_url}")
+        
+        # Setup webhook
+        webhook_path = await setup_webhook(application, webhook_url)
+        
+        # Add webhook handler
+        web_app.router.add_post(webhook_path, handle_webhook)
+        
+    except Exception as e:
+        logging.error(f"Startup failed: {e}")
+        await application.shutdown()
+        sys.exit(1)
 
-async def on_startup(app):
-    """Initialize the bot and set up the webhook on startup"""
-    # Get the webhook URL from environment variables (set by Render)
-    webhook_url = 'https://zenithfinderbot-1.onrender.com'
-    
-    # Initialize the application
-    await application.initialize()
-    await application.start()
-    
-    # Setup the webhook
-    await setup_webhook(app, BOT_TOKEN, webhook_url)
-    logging.info(f"Bot started and webhook set up at {webhook_url}")
-
-async def on_shutdown(app):
-    """Clean up resources on shutdown"""
+async def on_shutdown(web_app):
+    """Cleanup on shutdown"""
+    global application
     await application.bot.delete_webhook()
     await application.stop()
     await application.shutdown()
-    logging.info("Bot shut down")
 
 def main():
     global application
@@ -234,16 +256,18 @@ def main():
     application.add_handler(CommandHandler("list", list_addresses))
     application.add_handler(CommandHandler("help", help))
 
-    # Create the web application
-    app = web.Application()
-    app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown)
+    # Setup web application
+    web_app = web.Application()
+    web_app.on_startup.append(on_startup)
+    web_app.on_shutdown.append(on_shutdown)
+
+    # Get port from environment or use default
+    port = int(os.environ.get("PORT", 8443))
     
-    # Get port from environment variable (Render sets this)
-    port = int(os.environ.get('PORT', 8080))
-    
-    # Run the application
-    web.run_app(app, host='0.0.0.0', port=port)
+    # Start the web server
+    # When running on Render, we need to bind to 0.0.0.0 instead of localhost
+    host = '0.0.0.0' if os.environ.get("RENDER_EXTERNAL_URL") else 'localhost'
+    web.run_app(web_app, host=host, port=port)
 
 if __name__ == '__main__':
     main()
