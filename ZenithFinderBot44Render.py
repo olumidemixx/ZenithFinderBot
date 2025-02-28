@@ -193,11 +193,12 @@ import asyncio
 async def setup_webhook(app: Application):
     """Setup webhook for the bot"""
     # Get the webhook URL from environment variable (you'll set this in Render)
-    WEBHOOK_URL = os.environ.get('WEBHOOK_URL', f'https://zenithfinderbot-1.onrender.com')
-    webhook_path = f"/webhook/{BOT_TOKEN}"
-    webhook_url = f"{WEBHOOK_URL}{webhook_path}"
+    WEBHOOK_URL = 'https://zenithfinderbot-1.onrender.com/telegram'
+    #webhook_path = f"/webhook/{BOT_TOKEN}"
+    #webhook_url = f"{WEBHOOK_URL}{webhook_path}"
     
-    await app.bot.set_webhook(url=webhook_url)
+    #await app.bot.set_webhook(url=webhook_url)
+    await app.bot.set_webhook(url=WEBHOOK_URL)
     return webhook_path
 
 async def handle_webhook(request):
