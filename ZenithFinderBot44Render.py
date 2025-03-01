@@ -1,3 +1,4 @@
+
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -146,10 +147,10 @@ async def list_addresses(update: Update, context: ContextTypes.DEFAULT_TYPE):
             results = await checker.check_addresses_async(addresses)
             result_message = "Here's the List of Good Addresses and the number of Common Tokens:\n\n"
             for addr, count in results.items():
-                await update.message.reply_text(f"{addr} and {count}")
+                #await update.message.reply_text(f"{addr} and {count}")
                 if addr or count is None:
                     pass
-                    #await update.message.reply_text(f"An error occured", parse_mode='MarkdownV2')
+                    await update.message.reply_text(f"no address found", parse_mode='MarkdownV2')
                 result_message += f"Address: `{addr}`\nNumber of common tokens: {count}\n\n"
             await update.message.reply_text(result_message, parse_mode='MarkdownV2')
             await update.message.reply_text("Program Completed")
