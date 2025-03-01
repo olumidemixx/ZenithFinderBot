@@ -1,3 +1,4 @@
+
 import requests
 import json
 from datetime import datetime
@@ -101,7 +102,7 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         if before_param:
             params["before"] = before_param
             
-        #print(f"Fetching page {page+1} for analysis after skipping")
+        print(f"Fetching page {page+1} for analysis after skipping")
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
@@ -114,7 +115,7 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         transactions = response.json()
         
         if isinstance(transactions, dict) and "error" in transactions:
-            #print(f"API returned error: {transactions['error']}")
+            print(f"API returned error: {transactions['error']}")
             if page == 0:
                 return []
             break
@@ -134,7 +135,7 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
             
         time.sleep(0.5)
     
-    #print(f"Total transactions fetched for analysis: {len(all_transactions)}")
+    print(f"Total transactions fetched for analysis: {len(all_transactions)}")
     
     if len(all_transactions) == 0:
         #print("No transactions found for analysis after skipping.")
@@ -314,7 +315,7 @@ def get_current_token_price(token_address, api_key):
         return try_get_price_from_metadata(token_address, api_key)
         
     except Exception as e:
-        #print(f"Error getting current token price: {e}")
+        print(f"Error getting current token price: {e}")
         return 0
 
 def try_get_price_from_metadata(token_address, api_key):
@@ -403,7 +404,7 @@ def zenithfinderbot(token_addresses):
             
             if "active_wallets" in alt_info and alt_info["active_wallets"]:
                 wallets = alt_info["active_wallets"]
-                #print(f"\nTop Active Wallet Addresses:")
+                print(f"\nTop Active Wallet Addresses:")
                 for i, wallet in enumerate(wallets[:75], 1):
                     pass
                     
@@ -419,6 +420,7 @@ def zenithfinderbot(token_addresses):
             good_wallets.append(trader['wallet'])
             #print(good_wallets)
         all_wallets.append(good_wallets)
+        
     
     common_addresses = { "No Addresses Found": 0}
 
