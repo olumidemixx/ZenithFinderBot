@@ -29,7 +29,7 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
     }
     
     # Skip to desired transaction position
-    print(f"Skipping the first {skip_transactions} transactions...")
+    #print(f"Skipping the first {skip_transactions} transactions...")
     before_param = None
     
     # Calculate how many pages to skip
@@ -42,20 +42,22 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
             params["before"] = before_param
         
         if page % 10 == 0:  # Print status update every 10 pages
-            print(f"Skipping page {page+1}/{pages_to_skip}...")
+            pass
+           # print(f"Skipping page {page+1}/{pages_to_skip}...")
             
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            print(f"Error fetching data: {response.status_code}")
-            print(response.text)
+            pass
+            #print(f"Error fetching data: {response.status_code}")
+            #print(response.text)
             return []
         
         transactions = response.json()
         
         # Check if we hit the end
         if not transactions or len(transactions) == 0:
-            print(f"Reached the end after {page} pages, there aren't {skip_transactions} transactions available")
+            #print(f"Reached the end after {page} pages, there aren't {skip_transactions} transactions available")
             return []
         
         # Get the signature of the last transaction for pagination
@@ -71,13 +73,13 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            print(f"Error fetching final skipping page: {response.status_code}")
+            #print(f"Error fetching final skipping page: {response.status_code}")
             return []
             
         transactions = response.json()
         
         if not transactions or len(transactions) == 0:
-            print(f"Reached the end while skipping remaining transactions")
+            #print(f"Reached the end while skipping remaining transactions")
             return []
             
         # Get the signature of the last transaction at our desired starting point
@@ -89,8 +91,8 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
             
         time.sleep(0.5)
     
-    print(f"Successfully skipped approximately {skip_transactions} transactions")
-    print(f"Now collecting and analyzing transactions after this point...")
+    #print(f"Successfully skipped approximately {skip_transactions} transactions")
+    #print(f"Now collecting and analyzing transactions after this point...")
     
     # Now continue with collecting the transactions we want to analyze
     all_transactions = []
@@ -99,12 +101,12 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         if before_param:
             params["before"] = before_param
             
-        print(f"Fetching page {page+1} for analysis after skipping")
+        #print(f"Fetching page {page+1} for analysis after skipping")
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            print(f"Error fetching data: {response.status_code}")
-            print(response.text)
+            #print(f"Error fetching data: {response.status_code}")
+            #print(response.text)
             if page == 0:
                 return []
             break
@@ -112,16 +114,16 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         transactions = response.json()
         
         if isinstance(transactions, dict) and "error" in transactions:
-            print(f"API returned error: {transactions['error']}")
+            #print(f"API returned error: {transactions['error']}")
             if page == 0:
                 return []
             break
             
         if not transactions or len(transactions) == 0:
-            print("No more transactions found")
+            #print("No more transactions found")
             break
             
-        print(f"Fetched {len(transactions)} transactions")
+        #print(f"Fetched {len(transactions)} transactions")
         all_transactions.extend(transactions)
         
         if len(transactions) > 0:
@@ -132,10 +134,10 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
             
         time.sleep(0.5)
     
-    print(f"Total transactions fetched for analysis: {len(all_transactions)}")
+    #print(f"Total transactions fetched for analysis: {len(all_transactions)}")
     
     if len(all_transactions) == 0:
-        print("No transactions found for analysis after skipping.")
+        #print("No transactions found for analysis after skipping.")
         return []
     
     # Track wallet positions and trades
@@ -210,7 +212,7 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
     
     # Get current token price
     current_price = get_current_token_price(token_address, api_key)
-    print(f"Current estimated token price: {current_price} SOL per token")
+    #print(f"Current estimated token price: {current_price} SOL per token")
     
     # Calculate stats for each wallet including unrealized gains
     for wallet, trades in wallet_trades.items():
@@ -275,12 +277,12 @@ def get_current_token_price(token_address, api_key):
     try:
         response = requests.get(url, params=params)
         if response.status_code != 200:
-            print("Could not fetch recent transactions for pricing")
+            #print("Could not fetch recent transactions for pricing")
             return 0
             
         transactions = response.json()
         if not transactions or len(transactions) == 0:
-            print("No recent transactions found for pricing")
+            #print("No recent transactions found for pricing")
             return 0
             
         # Track all price points we find
@@ -312,7 +314,7 @@ def get_current_token_price(token_address, api_key):
         return try_get_price_from_metadata(token_address, api_key)
         
     except Exception as e:
-        print(f"Error getting current token price: {e}")
+        #print(f"Error getting current token price: {e}")
         return 0
 
 def try_get_price_from_metadata(token_address, api_key):
@@ -328,7 +330,7 @@ def try_get_price_from_metadata(token_address, api_key):
     """
     # This is a placeholder for potential integration with price APIs
     # You could integrate with Jupiter, Raydium, or other Solana DEXes here
-    print("No price data from transactions, trying Jupiter API...")
+    #print("No price data from transactions, trying Jupiter API...")
     
     # For now, we'll just look at metadata
     metadata_url = f"https://api.helius.xyz/v0/tokens/metadata?api-key={api_key}"
@@ -337,7 +339,8 @@ def try_get_price_from_metadata(token_address, api_key):
     if response.status_code == 200:
         metadata = response.json()
         if metadata and len(metadata) > 0:
-            print(f"Token metadata found: {metadata[0].get('name', 'Unknown')}")
+            pass
+            #print(f"Token metadata found: {metadata[0].get('name', 'Unknown')}")
             # Some tokens include price info in metadata, but most don't
             # This is a simple placeholder
             
@@ -363,7 +366,7 @@ def try_alternative_endpoints(token_address, api_key):
     if response.status_code == 200:
         metadata = response.json()
         if metadata and len(metadata) > 0:
-            print(f"Token metadata found: {metadata[0].get('name', 'Unknown')}")
+            #print(f"Token metadata found: {metadata[0].get('name', 'Unknown')}")
             return {"token_info": metadata[0]}
     
     # Try to get active wallets directly
@@ -372,7 +375,7 @@ def try_alternative_endpoints(token_address, api_key):
     
     if response.status_code == 200:
         active_data = response.json()
-        print(f"Found {len(active_data.get('data', []))} active wallets")
+        #print(f"Found {len(active_data.get('data', []))} active wallets")
         return {"active_wallets": active_data.get('data', [])}
     
     return {"error": "No alternative data found"}
@@ -395,24 +398,26 @@ def zenithfinderbot(token_addresses):
         
         # If no traders found, try alternative methods
         if not best_traders:
-            print("\nAttempting to find alternative information about this token...")
+            #print("\nAttempting to find alternative information about this token...")
             alt_info = try_alternative_endpoints(token_address, api_key)
             
             if "active_wallets" in alt_info and alt_info["active_wallets"]:
                 wallets = alt_info["active_wallets"]
-                print(f"\nTop Active Wallet Addresses:")
+                #print(f"\nTop Active Wallet Addresses:")
                 for i, wallet in enumerate(wallets[:75], 1):
-                    print(f"{wallet.get('wallet', 'Unknown')}")
+                    pass
+                    
+                    #print(f"{wallet.get('wallet', 'Unknown')}")
             else:
                 print("\nNo wallet addresses found")
             return
         
         # Display only wallet addresses
-        print(f"\nTop Wallet Addresses:")
+        #print(f"\nTop Wallet Addresses:")
         for trader in best_traders[:75]:
-            print(f"{trader['wallet']}")
+            #print(f"{trader['wallet']}")
             good_wallets.append(trader['wallet'])
-            print(good_wallets)
+            #print(good_wallets)
         all_wallets.append(good_wallets)
     
     common_addresses = { "No Addresses Found": 0}
