@@ -239,11 +239,12 @@ async def on_startup(web_app):
         sys.exit(1)
 
 async def on_shutdown(web_app):
+    logging.info("yeahhhhh")
     """Cleanup on shutdown"""
-    global application
-    await application.bot.delete_webhook()
-    await application.stop()
-    await application.shutdown()
+    #global application
+    #await application.bot.delete_webhook()
+    #await application.stop()
+    #await application.shutdown()
 
 def main():
     global application
@@ -260,7 +261,7 @@ def main():
     # Setup web application
     web_app = web.Application()
     web_app.on_startup.append(on_startup)
-    #web_app.on_shutdown.append(on_shutdown)
+    web_app.on_shutdown.append(on_shutdown)
 
     # Get port from environment or use default
     port = int(os.environ.get("PORT", 8443))
