@@ -2,7 +2,7 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from keep_alive import keep_alive
+#from keep_alive import keep_alive
 
 import asyncio
 from typing import List, Set, Dict
@@ -15,7 +15,8 @@ from pyngrok import ngrok
 import logging
 import sys
 import os
-
+from flask import Flask
+from flask import request
 BOT_TOKEN = '7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
 
 # Configure logging
@@ -193,6 +194,8 @@ from pyngrok import ngrok
 import logging
 import sys
 import asyncio
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 async def setup_webhook(application: Application, webhook_url: str):
     """Setup webhook for the bot"""
@@ -263,9 +266,38 @@ def main():
     web_app = web.Application()
     web_app.on_startup.append(on_startup)
     web_app.on_shutdown.append(on_shutdown)
+    port = int(os.environ.get("PORT", 8443))
+    app = Flask(__name__)
+
+    @app.route('/')
+    def home():
+        return "Bot is running!"
+
+    @app.route('/telegram', methods=['POST'])
+    def telegram_webhook():
+        if request.method == 'POST':
+            try:
+                update = Update.de_json(request.get_json(force=True), application.bot)
+                # Use the existing event loop
+                asyncio.run_coroutine_threadsafe(
+                    application.process_update(update),
+                    loop
+                ).result()
+                return 'OK'
+            except Exception as e:
+                logging.error(f"Error in webhook: {e}")
+                return 'Error', 500
+        return 'Only POST requests are allowed'
+
+    # Run Flask in a separate thread
+    from threading import Thread
+    def run_flask():
+        app.run(host='0.0.0.0', port=port)
+    
+    Thread(target=run_flask).start()
 
     # Get port from environment or use default
-    port = int(os.environ.get("PORT", 8443))
+    
     
     # Start the web server
     # When running on Render, we need to bind to 0.0.0.0 instead of localhost
