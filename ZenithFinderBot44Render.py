@@ -1,7 +1,7 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-#from keep_alive import keep_alive
+from keep_alive import keep_alive
 
 import asyncio
 from typing import List, Set, Dict
