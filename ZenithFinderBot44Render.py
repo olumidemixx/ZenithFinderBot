@@ -260,7 +260,7 @@ def main():
     # Setup web application
     web_app = web.Application()
     web_app.on_startup.append(on_startup)
-    web_app.on_shutdown.append(on_shutdown)
+    #web_app.on_shutdown.append(on_shutdown)
 
     # Get port from environment or use default
     port = int(os.environ.get("PORT", 8443))
