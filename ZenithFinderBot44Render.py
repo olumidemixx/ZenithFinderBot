@@ -2,7 +2,7 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from keep_alive import keep_alive
+
 
 import asyncio
 from typing import List, Set, Dict
@@ -247,7 +247,13 @@ async def on_shutdown(web_app):
     #await application.stop()
     #await application.shutdown()
 
-keep_alive()
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
+
 def main():
     
     global application
