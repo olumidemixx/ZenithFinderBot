@@ -247,8 +247,9 @@ async def on_shutdown(web_app):
     #await application.stop()
     #await application.shutdown()
 
+keep_alive()
 def main():
-    keep_alive()
+    
     global application
     
     # Initialize the bot application
