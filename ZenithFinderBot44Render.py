@@ -261,12 +261,46 @@ application.add_handler(CommandHandler("stop", stop))
 application.add_handler(CommandHandler("list", list_addresses))
 application.add_handler(CommandHandler("help", help))
 
+def initialize_bot():
+    """Initialize the bot"""
+    global bot_initialized
+    if bot_initialized:
+        return True
+        
+    try:
+        # Create an event loop for async operations
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Initialize the application
+        loop.run_until_complete(application.initialize())
+        loop.run_until_complete(application.start())
+        
+        # Set webhook URL
+        webhook_url = os.environ.get("RENDER_EXTERNAL_URL", "https://zenithfinderbot.onrender.com")
+        success = loop.run_until_complete(setup_webhook(webhook_url))
+        
+        if success:
+            bot_initialized = True
+            logger.info("Bot initialized successfully")
+            return True
+        else:
+            logger.error("Failed to set webhook")
+            return False
+    except Exception as e:
+        logger.error(f"Failed to initialize bot: {str(e)}")
+        return False
+
 # Webhook route for Telegram
 @app.route(f'/{BOT_TOKEN}', methods=['POST'])
 def webhook():
     """Handle incoming webhook requests from Telegram"""
     if request.method == "POST":
         try:
+            # Make sure bot is initialized
+            if not bot_initialized and not initialize_bot():
+                return 'Bot initialization failed', 500
+            
             # Create an asyncio event loop for handling the update
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -278,52 +312,42 @@ def webhook():
             return 'ok'
         except Exception as e:
             logger.error(f"Error processing update: {str(e)}")
-            return str(e)
+            return str(e), 500
     return 'ok'
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint for Render"""
-    return 'Bot is running!'
+    # Initialize bot if not already initialized
+    if not bot_initialized:
+        if initialize_bot():
+            return 'Bot initialized and running!', 200
+        else:
+            return 'Bot initialization failed', 500
+    return 'Bot is running!', 200
 
 # Ping endpoint to keep the service alive
 @app.route('/ping', methods=['GET'])
 def ping():
     """Ping endpoint to prevent Render from sleeping"""
-    return 'Pong!'
+    # Initialize bot if not already initialized
+    if not bot_initialized:
+        initialize_bot()
+    return 'Pong!', 200
 
-# Setup webhook for the bot
-async def setup_webhook(webhook_url):
-    """Setup webhook for the bot"""
-    try:
-        await application.bot.delete_webhook()
-        webhook_path = f"{webhook_url}/{BOT_TOKEN}"
-        await application.bot.set_webhook(url=webhook_path)
-        logger.info(f"Webhook set to {webhook_path}")
-    except Exception as e:
-        logger.error(f"Failed to set webhook: {str(e)}")
-
-# Initialize bot with webhook
-@app.before_first_request
-def initialize_bot():
-    """Initialize the bot before first request"""
-    try:
-        # Initialize the application
-        asyncio.run(application.initialize())
-        asyncio.run(application.start())
-        
-        # Set webhook URL
-        webhook_url = os.environ.get("RENDER_EXTERNAL_URL", "https://zenithfinderbot.onrender.com")
-        asyncio.run(setup_webhook(webhook_url))
-        
-        logger.info("Bot initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize bot: {str(e)}")
+# Root endpoint
+@app.route('/', methods=['GET'])
+def index():
+    """Root endpoint for checking if server is running"""
+    return 'ZenithFinder Bot is running. Set your webhook to receive updates.', 200
 
 if __name__ == '__main__':
     # Get port from environment or use default
     port = int(os.environ.get("PORT", 8443))
+    
+    # Initialize bot on startup
+    initialize_bot()
     
     # Start the Flask application
     app.run(host='0.0.0.0', port=port)
