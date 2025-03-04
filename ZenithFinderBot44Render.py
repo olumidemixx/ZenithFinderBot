@@ -251,10 +251,9 @@ def main():
     application.add_handler(CommandHandler("help", help))
 
     # Initialize application (required for webhook processing)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(application.initialize())
-    loop.run_until_complete(application.start())
+    
+    application.initialize()
+    application.start()
     
     # Set webhook URL
     webhook_url = "https://zenithfinderbot.onrender.com"
