@@ -260,7 +260,7 @@ application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("stop", stop))
 application.add_handler(CommandHandler("list", list_addresses))
 application.add_handler(CommandHandler("help", help))
-
+bot_initialized = False
 def initialize_bot():
     """Initialize the bot"""
     global bot_initialized
