@@ -6,10 +6,10 @@ from keep_alive import keep_alive
 
 import asyncio
 from typing import List, Set, Dict
+from flask import Flask 
 import time
 from concurrent.futures import ThreadPoolExecutor
 from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
-from flask import Flask, request
 
 from aiohttp import web
 from pyngrok import ngrok
@@ -24,8 +24,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-logger = logging.getLogger(__name__)
-
 
 ELIGIBLE_USER_IDS = [6364570277, 8160840495, 987654321]
 thread_pool = ThreadPoolExecutor(max_workers=10)  # Limit concurrent operations
@@ -253,97 +251,34 @@ async def on_shutdown(web_app):
     #await application.stop()
     #await application.shutdown()
 
-application = Application.builder().token(BOT_TOKEN).build()
 
-# Add command handlers
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("stop", stop))
-application.add_handler(CommandHandler("list", list_addresses))
-application.add_handler(CommandHandler("help", help))
-bot_initialized = False
 def initialize_bot():
-    """Initialize the bot"""
-    global bot_initialized
-    if bot_initialized:
-        return True
-        
-    try:
-        # Create an event loop for async operations
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        # Initialize the application
-        loop.run_until_complete(application.initialize())
-        loop.run_until_complete(application.start())
-        
-        # Set webhook URL
-        webhook_url = os.environ.get("RENDER_EXTERNAL_URL", "https://zenithfinderbot.onrender.com")
-        success = loop.run_until_complete(setup_webhook(webhook_url))
-        
-        if success:
-            bot_initialized = True
-            logger.info("Bot initialized successfully")
-            return True
-        else:
-            logger.error("Failed to set webhook")
-            return False
-    except Exception as e:
-        logger.error(f"Failed to initialize bot: {str(e)}")
-        return False
+    
+    global application
+    
+    # Initialize the bot application
+    application = Application.builder().token(BOT_TOKEN).build()
 
-# Webhook route for Telegram
-@app.route(f'/{BOT_TOKEN}', methods=['POST'])
-def webhook():
-    """Handle incoming webhook requests from Telegram"""
-    if request.method == "POST":
-        try:
-            # Make sure bot is initialized
-            if not bot_initialized and not initialize_bot():
-                return 'Bot initialization failed', 500
-            
-            # Create an asyncio event loop for handling the update
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            # Process the update
-            update = Update.de_json(request.get_json(force=True), application.bot)
-            loop.run_until_complete(application.process_update(update))
-            
-            return 'ok'
-        except Exception as e:
-            logger.error(f"Error processing update: {str(e)}")
-            return str(e), 500
-    return 'ok'
+    # Add command handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("stop", stop))
+    application.add_handler(CommandHandler("list", list_addresses))
+    application.add_handler(CommandHandler("help", help))
 
-# Health check endpoint
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint for Render"""
-    # Initialize bot if not already initialized
-    if not bot_initialized:
-        if initialize_bot():
-            return 'Bot initialized and running!', 200
-        else:
-            return 'Bot initialization failed', 500
-    return 'Bot is running!', 200
+    # Setup web application
+    web_app = web.Application()
+    web_app.on_startup.append(on_startup)
+    web_app.on_shutdown.append(on_shutdown)
+    
 
-# Ping endpoint to keep the service alive
-@app.route('/ping', methods=['GET'])
-def ping():
-    """Ping endpoint to prevent Render from sleeping"""
-    # Initialize bot if not already initialized
-    if not bot_initialized:
-        initialize_bot()
-    return 'Pong!', 200
+    # Get port from environment or use default
 
-# Root endpoint
 @app.route('/', methods=['GET'])
 def index():
     """Root endpoint for checking if server is running"""
     return 'ZenithFinder Bot is running. Set your webhook to receive updates.', 200
 
 if __name__ == '__main__':
-    # Get port from environment or use default
     port = int(os.environ.get("PORT", 8443))
     
     # Initialize bot on startup
