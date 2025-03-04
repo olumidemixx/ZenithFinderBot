@@ -2,13 +2,14 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-
+from keep_alive import keep_alive
 
 import asyncio
 from typing import List, Set, Dict
 import time
 from concurrent.futures import ThreadPoolExecutor
 from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
+from flask import Flask, request
 
 from aiohttp import web
 from pyngrok import ngrok
@@ -23,9 +24,14 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
+logger = logging.getLogger(__name__)
+
 
 ELIGIBLE_USER_IDS = [6364570277, 8160840495, 987654321]
 thread_pool = ThreadPoolExecutor(max_workers=10)  # Limit concurrent operations
+
+# Flask app
+app = Flask(__name__)
 
 def check_user_eligibility(user_id: int) -> bool:
     return user_id in ELIGIBLE_USER_IDS
@@ -247,39 +253,77 @@ async def on_shutdown(web_app):
     #await application.stop()
     #await application.shutdown()
 
-from flask import Flask
-app = Flask(__name__)
+application = Application.builder().token(BOT_TOKEN).build()
 
-@app.route('/')
-def hello_world():
-    return 'Hello, World!'
+# Add command handlers
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("stop", stop))
+application.add_handler(CommandHandler("list", list_addresses))
+application.add_handler(CommandHandler("help", help))
 
-def main():
-    
-    global application
-    
-    # Initialize the bot application
-    application = Application.builder().token(BOT_TOKEN).build()
+# Webhook route for Telegram
+@app.route(f'/{BOT_TOKEN}', methods=['POST'])
+def webhook():
+    """Handle incoming webhook requests from Telegram"""
+    if request.method == "POST":
+        try:
+            # Create an asyncio event loop for handling the update
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            # Process the update
+            update = Update.de_json(request.get_json(force=True), application.bot)
+            loop.run_until_complete(application.process_update(update))
+            
+            return 'ok'
+        except Exception as e:
+            logger.error(f"Error processing update: {str(e)}")
+            return str(e)
+    return 'ok'
 
-    # Add command handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("stop", stop))
-    application.add_handler(CommandHandler("list", list_addresses))
-    application.add_handler(CommandHandler("help", help))
+# Health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint for Render"""
+    return 'Bot is running!'
 
-    # Setup web application
-    web_app = web.Application()
-    web_app.on_startup.append(on_startup)
-    web_app.on_shutdown.append(on_shutdown)
-    
+# Ping endpoint to keep the service alive
+@app.route('/ping', methods=['GET'])
+def ping():
+    """Ping endpoint to prevent Render from sleeping"""
+    return 'Pong!'
 
+# Setup webhook for the bot
+async def setup_webhook(webhook_url):
+    """Setup webhook for the bot"""
+    try:
+        await application.bot.delete_webhook()
+        webhook_path = f"{webhook_url}/{BOT_TOKEN}"
+        await application.bot.set_webhook(url=webhook_path)
+        logger.info(f"Webhook set to {webhook_path}")
+    except Exception as e:
+        logger.error(f"Failed to set webhook: {str(e)}")
+
+# Initialize bot with webhook
+@app.before_first_request
+def initialize_bot():
+    """Initialize the bot before first request"""
+    try:
+        # Initialize the application
+        asyncio.run(application.initialize())
+        asyncio.run(application.start())
+        
+        # Set webhook URL
+        webhook_url = os.environ.get("RENDER_EXTERNAL_URL", "https://zenithfinderbot.onrender.com")
+        asyncio.run(setup_webhook(webhook_url))
+        
+        logger.info("Bot initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize bot: {str(e)}")
+
+if __name__ == '__main__':
     # Get port from environment or use default
     port = int(os.environ.get("PORT", 8443))
     
-    # Start the web server
-    # When running on Render, we need to bind to 0.0.0.0 instead of localhost
-    host = '0.0.0.0' if os.environ.get("RENDER_EXTERNAL_URL") else 'localhost'
-    web.run_app(web_app, host=host, port=port)
-
-if __name__ == '__main__':
-    main()
+    # Start the Flask application
+    app.run(host='0.0.0.0', port=port)
