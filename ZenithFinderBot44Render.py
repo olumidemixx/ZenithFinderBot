@@ -6,7 +6,7 @@ from keep_alive import keep_alive
 
 import asyncio
 from typing import List, Set, Dict
-from flask import Flask 
+from flask import Flask
 import time
 from concurrent.futures import ThreadPoolExecutor
 from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
@@ -16,6 +16,9 @@ from pyngrok import ngrok
 import logging
 import sys
 import os
+# Flask app
+app = Flask(__name__)
+
 
 BOT_TOKEN = '7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
 
@@ -27,9 +30,6 @@ logging.basicConfig(
 
 ELIGIBLE_USER_IDS = [6364570277, 8160840495, 987654321]
 thread_pool = ThreadPoolExecutor(max_workers=10)  # Limit concurrent operations
-
-# Flask app
-app = Flask(__name__)
 
 def check_user_eligibility(user_id: int) -> bool:
     return user_id in ELIGIBLE_USER_IDS
@@ -252,7 +252,7 @@ async def on_shutdown(web_app):
     #await application.shutdown()
 
 
-def initialize_bot():
+def main():
     
     global application
     
@@ -272,17 +272,28 @@ def initialize_bot():
     
 
     # Get port from environment or use default
-
-@app.route('/', methods=['GET'])
-def index():
-    """Root endpoint for checking if server is running"""
-    return 'ZenithFinder Bot is running. Set your webhook to receive updates.', 200
-
-if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8443))
     
+    # Start the web server
+    # When running on Render, we need to bind to 0.0.0.0 instead of localhost
+    #host = '0.0.0.0' if os.environ.get("RENDER_EXTERNAL_URL") else 'localhost'
+    #web.run_app(web_app, host=host, port=port)
+    @app.route('/', methods=['GET'])
+    def index():
+        """Root endpoint for checking if server is running"""
+        return 'ZenithFinder Bot is running. Set your webhook to receive updates.', 200
+    #port = int(os.environ.get("PORT", 8443))
+    from threading import Thread
+    def run_flask():
+        app.run(host='0.0.0.0', port=port)
+    
+    Thread(target=run_flask).start()
+    
     # Initialize bot on startup
-    initialize_bot()
     
     # Start the Flask application
-    app.run(host='0.0.0.0', port=port)
+    #app.run(host='0.0.0.0', port=port)
+
+if __name__ == '__main__':
+    
+    main()
