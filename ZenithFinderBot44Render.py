@@ -283,11 +283,11 @@ def main():
         """Root endpoint for checking if server is running"""
         return 'ZenithFinder Bot is running. Set your webhook to receive updates.', 200
     #port = int(os.environ.get("PORT", 8443))
-    from threading import Thread
-    def run_flask():
-        app.run(host='0.0.0.0', port=port)
+    #from threading import Thread
+    #def run_flask():
+    app.run(host='0.0.0.0', port=port)
     
-    Thread(target=run_flask).start()
+    #Thread(target=run_flask).start()
     
     # Initialize bot on startup
     
