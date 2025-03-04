@@ -1,4 +1,3 @@
-
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -6,19 +5,15 @@ from keep_alive import keep_alive
 
 import asyncio
 from typing import List, Set, Dict
-from flask import Flask
 import time
 from concurrent.futures import ThreadPoolExecutor
 from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
 
-from aiohttp import web
-from pyngrok import ngrok
+from flask import Flask, request, Response
+import threading
 import logging
 import sys
 import os
-# Flask app
-app = Flask(__name__)
-
 
 BOT_TOKEN = '7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
 
@@ -188,72 +183,62 @@ I'll advise you input between 8 - 10 tokens to get the common addresses between 
 You can then use tools like Gmgn website/bot, Cielo and so on to check the winrate and other qualities of these common addresses"""
     
     await update.message.reply_text(help_text)
-    
-    
-    
-    
-from aiohttp import web
-from pyngrok import ngrok
-import logging
-import sys
-import asyncio
 
-async def setup_webhook(application: Application, webhook_url: str):
-    """Setup webhook for the bot"""
-    webhook_path = f"/{BOT_TOKEN}"
-    await application.bot.set_webhook(url=webhook_url + webhook_path)
-    return webhook_path
+# Flask app for webhook handling
+app = Flask(__name__)
 
-async def handle_webhook(request):
-    """Handle incoming webhook requests"""
-    try:
-        update = Update.de_json(await request.json(), application.bot)
-        await application.process_update(update)
-        return web.Response(status=200)
-    except Exception as e:
-        logging.error(f"Error processing update: {e}")
-        return web.Response(status=500)
-
-async def on_startup(web_app):
-    """Setup webhook on startup"""
-    global application
-    
-    try:
-        # Initialize the application
-        await application.initialize()
-        await application.start()
-        
-        # Use Render URL from environment variable
-        webhook_url = "https://zenithfinderbot.onrender.com"
-        if not webhook_url:
-            logging.error("RENDER_EXTERNAL_URL environment variable not found")
-            await application.shutdown()
-            sys.exit(1)
+@app.route(f"/{BOT_TOKEN}", methods=['POST'])
+def webhook():
+    """Handle webhook requests from Telegram"""
+    if request.method == "POST":
+        try:
+            # Create asyncio event loop for handling updates
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             
-        logging.info(f"Using Render URL: {webhook_url}")
+            # Parse update
+            update = Update.de_json(request.get_json(force=True), application.bot)
+            
+            # Process update in the loop
+            coroutine = application.process_update(update)
+            loop.run_until_complete(coroutine)
+            
+            return Response('ok', status=200)
+        except Exception as e:
+            logging.error(f"Error processing update: {e}")
+            return Response(str(e), status=500)
+    return Response('Method not allowed', status=405)
+
+def set_webhook(url):
+    """Set webhook for the Telegram bot"""
+    try:
+        # Create asyncio event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         
-        # Setup webhook
-        webhook_path = await setup_webhook(application, webhook_url)
+        # Set webhook
+        webhook_url = f"{url}/{BOT_TOKEN}"
+        coroutine = application.bot.set_webhook(url=webhook_url)
+        loop.run_until_complete(coroutine)
         
-        # Add webhook handler
-        web_app.router.add_post(webhook_path, handle_webhook)
-        
+        logging.info(f"Webhook set to {webhook_url}")
+        return True
     except Exception as e:
-        logging.error(f"Startup failed: {e}")
-        await application.shutdown()
-        sys.exit(1)
+        logging.error(f"Failed to set webhook: {e}")
+        return False
 
-async def on_shutdown(web_app):
-    logging.info("yeahhhhh")
-    """Cleanup on shutdown"""
-    #global application
-    #await application.bot.delete_webhook()
-    #await application.stop()
-    #await application.shutdown()
-
-
-def main():
+def run_flask():
+    """Run Flask application"""
+    # Get port from environment or use default
+    port = int(os.environ.get("PORT", 8443))
     
+    # When running on Render, we need to bind to 0.0.0.0 instead of localhost
+    host = '0.0.0.0' if os.environ.get("RENDER_EXTERNAL_URL") else 'localhost'
+    
+    app.run(host=host, port=port)
+
+keep_alive()
+def main():
     global application
     
     # Initialize the bot application
@@ -265,35 +250,35 @@ def main():
     application.add_handler(CommandHandler("list", list_addresses))
     application.add_handler(CommandHandler("help", help))
 
-    # Setup web application
-    web_app = web.Application()
-    web_app.on_startup.append(on_startup)
-    web_app.on_shutdown.append(on_shutdown)
+    # Initialize application (required for webhook processing)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.initialize())
+    loop.run_until_complete(application.start())
     
-
-    # Get port from environment or use default
-    port = int(os.environ.get("PORT", 8443))
+    # Set webhook URL
+    webhook_url = "https://zenithfinderbot.onrender.com"
+    if not set_webhook(webhook_url):
+        logging.error("Failed to set webhook")
+        loop.run_until_complete(application.shutdown())
+        sys.exit(1)
     
-    # Start the web server
-    # When running on Render, we need to bind to 0.0.0.0 instead of localhost
-    #host = '0.0.0.0' if os.environ.get("RENDER_EXTERNAL_URL") else 'localhost'
-    #web.run_app(web_app, host=host, port=port)
-    @app.route('/', methods=['GET'])
-    def index():
-        """Root endpoint for checking if server is running"""
-        return 'ZenithFinder Bot is running. Set your webhook to receive updates.', 200
-    #port = int(os.environ.get("PORT", 8443))
-    #from threading import Thread
-    #def run_flask():
-    app.run(host='0.0.0.0', port=port)
+    # Start Flask in a separate thread
+    threading.Thread(target=run_flask, daemon=True).start()
     
-    #Thread(target=run_flask).start()
-    
-    # Initialize bot on startup
-    
-    # Start the Flask application
-    #app.run(host='0.0.0.0', port=port)
+    try:
+        # Keep the main thread running
+        while True:
+            time.sleep(60)
+    except KeyboardInterrupt:
+        # Handle graceful shutdown
+        logging.info("Shutting down...")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(application.bot.delete_webhook())
+        loop.run_until_complete(application.stop())
+        loop.run_until_complete(application.shutdown())
+        sys.exit(0)
 
 if __name__ == '__main__':
-    
     main()
