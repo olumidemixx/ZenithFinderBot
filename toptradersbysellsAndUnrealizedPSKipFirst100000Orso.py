@@ -216,6 +216,8 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
     
     # Calculate stats for each wallet including unrealized gains
     for wallet, trades in wallet_trades.items():
+        if wallet or trades is None:
+            pass
         total_invested = 0
         total_returned = 0
         total_profit = 0
