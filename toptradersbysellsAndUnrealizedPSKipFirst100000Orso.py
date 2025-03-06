@@ -4,7 +4,7 @@ from datetime import datetime
 from collections import defaultdict
 import time
 all_wallets = []
-def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=30):
+def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=90):
     """
     Find the best traders for a specific Solana token using Helius API,
     starting after a specific number of transactions
