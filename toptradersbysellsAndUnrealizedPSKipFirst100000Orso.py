@@ -4,7 +4,7 @@ from datetime import datetime
 from collections import defaultdict
 import time
 all_wallets = []
-def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=3):
+def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=300):
     """
     Find the best traders for a specific Solana token using Helius API,
     starting after a specific number of transactions
@@ -369,6 +369,7 @@ def try_alternative_endpoints(token_address, api_key):
     # Try to get active wallets directly
     active_url = f"https://api.helius.xyz/v0/tokens/active-wallets?api-key={api_key}"
     response = requests.post(active_url, json={"query": {"mints": [token_address]}})
+    time.sleep(3)
     
     if response.status_code == 200:
         active_data = response.json()
