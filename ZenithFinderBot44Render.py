@@ -145,7 +145,7 @@ async def list_addresses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def check_addresses_task():
         try:
             results = await checker.check_addresses_async(addresses)
-            await update.message.reply_text(f"Results type: {type(results)}")
+            await update.message.reply_text(f"Results type: {results}")
             if results is None:
                 await update.message.reply_text("No results returned from check_addresses_async")
                 return
