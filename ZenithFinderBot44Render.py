@@ -4,7 +4,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 from keep_alive import keep_alive
 
 import asyncio
-from typing import List, Set, Dict, Optional
+from typing import List, Set, Dict
 import time
 from concurrent.futures import ThreadPoolExecutor
 from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
@@ -29,53 +29,34 @@ thread_pool = ThreadPoolExecutor(max_workers=10)  # Limit concurrent operations
 def check_user_eligibility(user_id: int) -> bool:
     return user_id in ELIGIBLE_USER_IDS
 
-class UserSession:
-    """Represents a single user's session with addresses to monitor"""
-    def __init__(self, user_id: int):
-        self.user_id = user_id
-        self.addresses: Set[str] = set()
-        self.results: Dict[str, str] = {}
-
 class UserTokenChecker:
     def __init__(self, user_id: int):
         self.user_id = user_id
         self.is_running = False
-        self.sessions: Dict[str, UserSession] = {}  # Track multiple sessions per user
-        self.task: Optional[asyncio.Task] = None
+        self.addresses: Set[str] = set()
+        self.task = None
+        self.last_results: Dict[str, str] = {}
         self.processing = False
-        self.current_session_id: Optional[str] = None
 
     async def start_checking(self):
         if not self.is_running:
             self.is_running = True
-            try:
-                while self.is_running:
-                    # Check all sessions for this user
-                    for session_id, session in list(self.sessions.items()):
-                        if session.addresses and not self.processing:
-                            try:
-                                self.current_session_id = session_id
-                                session.results = await self.check_addresses_async(list(session.addresses))
-                                self.current_session_id = None
-                            except Exception as e:
-                                logging.error(f"Error in zenithfinderbot for user {self.user_id}, session {session_id}: {str(e)}")
-                    await asyncio.sleep(30)
-            except asyncio.CancelledError:
-                logging.info(f"Task for user {self.user_id} was cancelled")
-            except Exception as e:
-                logging.error(f"Unexpected error in task for user {self.user_id}: {str(e)}")
-            finally:
-                self.is_running = False
+            while self.is_running:
+                if self.addresses and not self.processing:
+                    try:
+                        self.last_results = await self.check_addresses_async(list(self.addresses))
+                    except Exception as e:
+                        logging.error(f"Error in zenithfinderbot for user {self.user_id}: {str(e)}")
+                await asyncio.sleep(30)
 
     async def check_addresses_async(self, addresses: List[str]) -> Dict[str, str]:
         self.processing = True
         try:
-            result = await asyncio.get_event_loop().run_in_executor(
+            return await asyncio.get_event_loop().run_in_executor(
                 thread_pool, 
                 zenithfinderbot, 
                 addresses
             )
-            return result if result is not None else {}
         finally:
             self.processing = False
 
@@ -85,58 +66,30 @@ class UserTokenChecker:
             self.task.cancel()
             self.task = None
 
-    def create_session(self) -> str:
-        """Create a new session for this user and return its ID"""
-        session_id = f"session_{len(self.sessions) + 1}_{int(time.time())}"
-        self.sessions[session_id] = UserSession(self.user_id)
-        return session_id
+    def add_addresses(self, new_addresses: List[str]):
+        self.addresses.update(new_addresses)
 
-    def add_addresses_to_session(self, session_id: str, new_addresses: List[str]):
-        """Add addresses to a specific session"""
-        if session_id in self.sessions:
-            self.sessions[session_id].addresses.update(new_addresses)
+    def clear_addresses(self):
+        self.addresses.clear()
+        self.last_results.clear()
 
-    def clear_session(self, session_id: str):
-        """Clear addresses and results for a specific session"""
-        if session_id in self.sessions:
-            self.sessions[session_id].addresses.clear()
-            self.sessions[session_id].results.clear()
-
-    def get_session_results(self, session_id: str) -> Dict[str, str]:
-        """Get results for a specific session"""
-        if session_id in self.sessions:
-            return self.sessions[session_id].results
-        return {}
+    def get_latest_results(self) -> Dict[str, str]:
+        return self.last_results
 
 class BotManager:
     def __init__(self):
         self.user_checkers: Dict[int, UserTokenChecker] = {}
-        # Track which session is currently being used by a user command
-        self.user_active_sessions: Dict[int, str] = {}
 
     def get_or_create_checker(self, user_id: int) -> UserTokenChecker:
         if user_id not in self.user_checkers:
             self.user_checkers[user_id] = UserTokenChecker(user_id)
         return self.user_checkers[user_id]
 
-    def create_session_for_user(self, user_id: int) -> str:
-        """Create a new session for a user and set it as active"""
-        checker = self.get_or_create_checker(user_id)
-        session_id = checker.create_session()
-        self.user_active_sessions[user_id] = session_id
-        return session_id
-
-    def get_active_session(self, user_id: int) -> Optional[str]:
-        """Get the currently active session ID for a user"""
-        return self.user_active_sessions.get(user_id)
-
     def remove_checker(self, user_id: int):
         if user_id in self.user_checkers:
             checker = self.user_checkers[user_id]
             checker.stop_checking()
             del self.user_checkers[user_id]
-        if user_id in self.user_active_sessions:
-            del self.user_active_sessions[user_id]
 
 # Initialize the bot manager
 bot_manager = BotManager()
@@ -148,9 +101,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     checker = bot_manager.get_or_create_checker(user_id)
-    # Create an initial session
-    session_id = bot_manager.create_session_for_user(user_id)
-    
     if not checker.is_running:
         checker.task = asyncio.create_task(checker.start_checking())
         await update.message.reply_text("Bot started. Now monitoring addresses for your session.")
@@ -178,10 +128,6 @@ async def list_addresses(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     checker = bot_manager.get_or_create_checker(user_id)
-    
-    # Create a new session for this list command
-    session_id = bot_manager.create_session_for_user(user_id)
-    
     await update.message.reply_text("Getting common addresses, please wait.....")
 
     text = update.message.text.replace('/list', '').strip()
@@ -191,28 +137,20 @@ async def list_addresses(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please provide between 2 and 10 addresses.")
         return
 
-    # Clear and add addresses to the new session
-    checker.clear_session(session_id)
-    checker.add_addresses_to_session(session_id, addresses)
+    checker.clear_addresses()
+    checker.add_addresses(addresses)
 
     # Create a background task for address checking
     async def check_addresses_task():
         try:
             results = await checker.check_addresses_async(addresses)
-            if results is None:
-                await update.message.reply_text("No results returned from check_addresses_async")
-                return
-            
-            # Save results to session
-            if session_id in checker.sessions:
-                checker.sessions[session_id].results = results
-            
             result_message = "Here's the List of Good Addresses and the number of Common Tokens:\n\n"
             for addr, count in results.items():
-                if addr is None or count is None:
-                    continue
+                #await update.message.reply_text(f"{addr} and {count}")
+                if addr or count is None:
+                    pass
+                    await update.message.reply_text(f"no address found", parse_mode='MarkdownV2')
                 result_message += f"Address: `{addr}`\nNumber of common tokens: {count}\n\n"
-            
             await update.message.reply_text(result_message, parse_mode='MarkdownV2')
             await update.message.reply_text("Program Completed")
         except Exception as e:
@@ -299,6 +237,12 @@ async def home_page(request):
     </html>
     """
     return web.Response(text=html, content_type='text/html')
+    
+from aiohttp import web
+from pyngrok import ngrok
+import logging
+import sys
+import asyncio
 
 async def setup_webhook(application: Application, webhook_url: str):
     """Setup webhook for the bot"""
@@ -346,7 +290,7 @@ async def on_startup(web_app):
         sys.exit(1)
 
 async def on_shutdown(web_app):
-    logging.info("Shutting down application")
+    logging.info("yeahhhhh")
     """Cleanup on shutdown"""
     #global application
     #await application.bot.delete_webhook()
