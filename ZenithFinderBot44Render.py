@@ -52,11 +52,12 @@ class UserTokenChecker:
     async def check_addresses_async(self, addresses: List[str]) -> Dict[str, str]:
         self.processing = True
         try:
-            return await asyncio.get_event_loop().run_in_executor(
-                thread_pool, 
-                zenithfinderbot, 
-                addresses
-            )
+            result = await asyncio.get_event_loop().run_in_executor(
+            thread_pool, 
+            zenithfinderbot, 
+            addresses
+        )
+            return result if result is not None else {}
         finally:
             self.processing = False
 
@@ -144,6 +145,10 @@ async def list_addresses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def check_addresses_task():
         try:
             results = await checker.check_addresses_async(addresses)
+            await update.message.reply_text(f"Results type: {type(results)}")
+            if results is None:
+                await update.message.reply_text("No results returned from check_addresses_async")
+                return
             result_message = "Here's the List of Good Addresses and the number of Common Tokens:\n\n"
             for addr, count in results.items():
                 #await update.message.reply_text(f"{addr} and {count}")
