@@ -432,12 +432,13 @@ def zenithfinderbot(token_addresses):
         # Flatten the list of lists into a single list
         flat_list = [item for sublist in all_addresses for item in sublist]
         if len(flat_list) > 0:
-            return Counter(flat_list)
+            counter = Counter(flat_list)
+        # Get the 50 most common elements and create a new Counter
+            return Counter(dict(counter.most_common(50)))
         else:
             return []
         
-        # Use Counter to count occurrences of each element
-        return Counter(flat_list)
+        
 
     # Example usage
 
