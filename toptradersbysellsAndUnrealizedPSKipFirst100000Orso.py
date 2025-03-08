@@ -6,7 +6,7 @@ import time
 
 all_wallets = []
 
-def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=50):
+def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=40):
     """
     Find the best traders for a specific Solana token using Helius API,
     focusing only on selling activity
