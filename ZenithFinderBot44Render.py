@@ -1,19 +1,25 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from keep_alive import keep_alive
-
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 import asyncio
 from typing import List, Set, Dict
 import time
 from concurrent.futures import ThreadPoolExecutor
 from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
-
+#from unrealizedANDrealizedTopTraders import zenithfinderbot
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from aiohttp import web
 from pyngrok import ngrok
 import logging
 import sys
 import os
+from keep_alive import keep_alive
 
 BOT_TOKEN = '7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
 
@@ -36,13 +42,13 @@ class UserTokenChecker:
         self.addresses: Set[str] = set()
         self.task = None
         self.last_results: Dict[str, str] = {}
-        self.processing = False
+        self.active_requests = 0  # Track active requests per user instead of a simple flag
 
     async def start_checking(self):
         if not self.is_running:
             self.is_running = True
             while self.is_running:
-                if self.addresses and not self.processing:
+                if self.addresses and self.active_requests == 0:  # Only auto-check when no manual checks are running
                     try:
                         self.last_results = await self.check_addresses_async(list(self.addresses))
                     except Exception as e:
@@ -50,7 +56,7 @@ class UserTokenChecker:
                 await asyncio.sleep(30)
 
     async def check_addresses_async(self, addresses: List[str]) -> Dict[str, str]:
-        self.processing = True
+        self.active_requests += 1  # Increment active request counter
         try:
             return await asyncio.get_event_loop().run_in_executor(
                 thread_pool, 
@@ -58,7 +64,7 @@ class UserTokenChecker:
                 addresses
             )
         finally:
-            self.processing = False
+            self.active_requests -= 1  # Decrement when done
 
     def stop_checking(self):
         self.is_running = False
@@ -121,43 +127,53 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Your bot session is not running.")
 
+async def process_list_command(update: Update, addresses: List[str]):
+    """Process a single list command independent of other users' commands"""
+    user_id = update.effective_user.id
+    checker = bot_manager.get_or_create_checker(user_id)
+    
+    try:
+        await update.message.reply_text("Processing addresses, please wait...")
+        results = await checker.check_addresses_async(addresses)
+        
+        if results is None or not results:
+            await update.message.reply_text("No common addresses found between these tokens.")
+            return
+            
+        result_message = "Here's the List of Good Addresses and the number of Common Tokens:\n\n"
+        for addr, count in results.items():
+            if addr and count is not None:
+                result_message += f"Address: `{addr}`\nNumber of common tokens: {count}\n\n"
+        
+        await update.message.reply_text(result_message, parse_mode='MarkdownV2')
+        await update.message.reply_text("Command completed successfully")
+    except Exception as e:
+        logging.error(f"Error processing list command for user {user_id}: {str(e)}")
+        await update.message.reply_text(f"Error checking addresses: {str(e)}")
+
 async def list_addresses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not check_user_eligibility(user_id):
         await update.message.reply_text("Sorry, you are not eligible to use this bot.")
         return
 
-    checker = bot_manager.get_or_create_checker(user_id)
-    await update.message.reply_text("Getting common addresses, please wait.....")
-
-    text = update.message.text.replace('/list', '').strip()
+    # Extract command name to handle different list variants
+    command = update.message.text.split()[0].lower()
+    list_variant = command.replace('/list', '')  # Will be empty for /list or have a number for /list1, /list2, etc.
+    
+    text = update.message.text.replace(command, '').strip()
     addresses = [addr.strip() for addr in text.split(',') if addr.strip()]
 
     if not 2 <= len(addresses) <= 10:
         await update.message.reply_text("Please provide between 2 and 10 addresses.")
         return
 
-    checker.clear_addresses()
-    checker.add_addresses(addresses)
-
-    # Create a background task for address checking
-    async def check_addresses_task():
-        try:
-            results = await checker.check_addresses_async(addresses)
-            result_message = "Here's the List of Good Addresses and the number of Common Tokens:\n\n"
-            for addr, count in results.items():
-                #await update.message.reply_text(f"{addr} and {count}")
-                if addr or count is None:
-                    pass
-                    await update.message.reply_text(f"no address found", parse_mode='MarkdownV2')
-                result_message += f"Address: `{addr}`\nNumber of common tokens: {count}\n\n"
-            await update.message.reply_text(result_message, parse_mode='MarkdownV2')
-            await update.message.reply_text("Program Completed")
-        except Exception as e:
-            await update.message.reply_text(f"Error checking addresses: {str(e)}")
-
-    # Launch the task without awaiting it
-    asyncio.create_task(check_addresses_task())
+    # Create a new task for this specific request
+    # This allows multiple requests to run concurrently
+    asyncio.create_task(process_list_command(update, addresses))
+    
+    # Optional: you can track which variant was used if needed
+    logging.info(f"User {user_id} used list variant: {list_variant or 'default'}")
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -184,7 +200,6 @@ You can then use tools like Gmgn website/bot, Cielo and so on to check the winra
     
     await update.message.reply_text(help_text)
     
-# Home page handler
 async def home_page(request):
     """Handle requests to the home page"""
     html = """
