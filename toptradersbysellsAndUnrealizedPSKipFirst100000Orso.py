@@ -1,13 +1,15 @@
 import requests
 import json
 from datetime import datetime
-from collections import defaultdict
+from collections import defaultdict, Counter
 import time
+
 all_wallets = []
-def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=40):
+
+def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=10):
     """
     Find the best traders for a specific Solana token using Helius API,
-    starting after a specific number of transactions
+    focusing only on selling activity
     
     Args:
         token_address (str): The address of the Solana token to analyze
@@ -17,7 +19,7 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         max_pages (int): Maximum number of pages to fetch after skipping
         
     Returns:
-        list: Sorted list of traders by profits and holdings value
+        list: Sorted list of traders by sell profits only
     """
     # Helius API endpoint
     url = f"https://api.helius.xyz/v0/addresses/{token_address}/transactions"
@@ -29,7 +31,6 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
     }
     
     # Skip to desired transaction position
-    ###print(f"Skipping the first {skip_transactions} transactions...")
     before_param = None
     
     # Calculate how many pages to skip
@@ -41,23 +42,15 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         if before_param:
             params["before"] = before_param
         
-        if page % 10 == 0:  # ##print status update every 10 pages
-            pass
-            #print(f"Skipping page {page+1}/{pages_to_skip}...")
-            
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            
-            #print(f"Error fetching data: {response.status_code}")
-            #print(response.text)
             return []
         
         transactions = response.json()
         
         # Check if we hit the end
         if not transactions or len(transactions) == 0:
-            #print(f"Reached the end after {page} pages, there aren't {skip_transactions} transactions available")
             return []
         
         # Get the signature of the last transaction for pagination
@@ -73,13 +66,11 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            #print(f"Error fetching final skipping page: {response.status_code}")
             return []
             
         transactions = response.json()
         
         if not transactions or len(transactions) == 0:
-            #print(f"Reached the end while skipping remaining transactions")
             return []
             
         # Get the signature of the last transaction at our desired starting point
@@ -91,9 +82,6 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
             
         time.sleep(0.5)
     
-    #print(f"Successfully skipped approximately {skip_transactions} transactions")
-    #print(f"Now collecting and analyzing transactions after this point...")
-    
     # Now continue with collecting the transactions we want to analyze
     all_transactions = []
     
@@ -101,12 +89,9 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         if before_param:
             params["before"] = before_param
             
-        #print(f"Fetching page {page+1} for analysis after skipping")
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            #print(f"Error fetching data: {response.status_code}")
-            #print(response.text)
             if page == 0:
                 return []
             break
@@ -114,16 +99,13 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
         transactions = response.json()
         
         if isinstance(transactions, dict) and "error" in transactions:
-            #print(f"API returned error: {transactions['error']}")
             if page == 0:
                 return []
             break
             
         if not transactions or len(transactions) == 0:
-            #print("No more transactions found")
             break
             
-        #print(f"Fetched {len(transactions)} transactions")
         all_transactions.extend(transactions)
         
         if len(transactions) > 0:
@@ -134,16 +116,14 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
             
         time.sleep(0.5)
     
-    #print(f"Total transactions fetched for analysis: {len(all_transactions)}")
-    
     if len(all_transactions) == 0:
-        #print("No transactions found for analysis after skipping.")
         return []
     
-    # Track wallet positions and trades
+    # Track wallet positions for cost basis calculation
     wallet_positions = defaultdict(lambda: {'amount': 0, 'cost_basis': 0})
-    wallet_trades = defaultdict(list)
-    wallet_stats = {}
+    
+    # Track only selling activity per wallet
+    wallet_sells = defaultdict(lambda: {'total_profit': 0, 'sell_count': 0, 'total_sell_value': 0})
     
     # Process each transaction
     for tx in all_transactions:
@@ -169,7 +149,13 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
                             value = nativeTransfer.get('amount', 0)
                             break
                     
-                    # Record the trade
+                    # Track buy transactions ONLY to calculate cost basis
+                    if to_wallet != 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA': # Not a burn
+                        # Buyer is receiving tokens - update position for future sell profit calculation
+                        wallet_positions[to_wallet]['amount'] += amount
+                        wallet_positions[to_wallet]['cost_basis'] += value
+                    
+                    # Track ONLY sell transactions for ranking
                     if from_wallet != 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA': # Not a mint
                         # Seller is sending tokens out
                         previous_amount = wallet_positions[from_wallet]['amount']
@@ -181,82 +167,37 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
                             cost_basis_portion = previous_cost * portion_sold
                             profit = value - cost_basis_portion
                             
-                            # Record the trade
-                            wallet_trades[from_wallet].append({
-                                'date': date,
-                                'type': 'sell',
-                                'amount': amount,
-                                'value': value,
-                                'profit': profit
-                            })
+                            # Record the sell activity
+                            wallet_sells[from_wallet]['total_profit'] += profit
+                            wallet_sells[from_wallet]['sell_count'] += 1
+                            wallet_sells[from_wallet]['total_sell_value'] += value
                             
                             # Update position
                             wallet_positions[from_wallet]['amount'] -= amount
                             wallet_positions[from_wallet]['cost_basis'] -= cost_basis_portion
-                    
-                    if to_wallet != 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA': # Not a burn
-                        # Buyer is receiving tokens
-                        wallet_positions[to_wallet]['amount'] += amount
-                        wallet_positions[to_wallet]['cost_basis'] += value
-                        
-                        # Record the trade
-                        wallet_trades[to_wallet].append({
-                            'date': date,
-                            'type': 'buy',
-                            'amount': amount,
-                            'value': value
-                        })
         except Exception as e:
             print(f"Error processing transaction: {e}")
             continue
     
-    # Get current token price
-    current_price = get_current_token_price(token_address, api_key)
-    #print(f"Current estimated token price: {current_price} SOL per token")
+    # Create stats for each wallet based ONLY on selling activity
+    wallet_stats = {}
     
-    # Calculate stats for each wallet including unrealized gains
-    for wallet, trades in wallet_trades.items():
-        if wallet or trades is None:
-            pass
-        total_invested = 0
-        total_returned = 0
-        total_profit = 0
-        
-        for trade in trades:
-            if trade['type'] == 'buy':
-                total_invested += trade['value']
-            elif trade['type'] == 'sell':
-                total_returned += trade['value']
-                total_profit += trade.get('profit', 0)
-        
-        # Get current holdings and value
-        current_holdings = wallet_positions[wallet]['amount']
-        current_holdings_value = current_holdings * current_price
-        
-        # Calculate combined value (realized profit + holdings value)
-        combined_value = total_profit + current_holdings_value
-        
-        # Calculate ROI
-        roi = 0
-        if total_invested > 0:
-            roi = ((total_returned + current_holdings_value - total_invested) / total_invested) * 100
-        
-        wallet_stats[wallet] = {
-            'wallet': wallet,
-            'total_invested': total_invested,
-            'realized_returns': total_returned,
-            'realized_profit': total_profit,
-            'current_holdings': current_holdings,
-            'holdings_value': current_holdings_value,
-            'combined_value': combined_value,
-            'roi': roi,
-            'trade_count': len(trades)
-        }
+    for wallet, sell_data in wallet_sells.items():
+        # Only include wallets that have actually sold tokens
+        if sell_data['sell_count'] > 0:
+            wallet_stats[wallet] = {
+                'wallet': wallet,
+                'total_sell_profit': sell_data['total_profit'],
+                'sell_count': sell_data['sell_count'],
+                'total_sell_value': sell_data['total_sell_value'],
+                # We could add average profit per sell if needed
+                'avg_profit_per_sell': sell_data['total_profit'] / sell_data['sell_count'] if sell_data['sell_count'] > 0 else 0
+            }
     
-    # Sort by combined value (realized profit + holdings value)
-    best_traders = sorted(wallet_stats.values(), key=lambda x: x['combined_value'], reverse=True)
+    # Sort by total sell profit - focusing ONLY on selling activity
+    best_sellers = sorted(wallet_stats.values(), key=lambda x: x['total_sell_profit'], reverse=True)
     
-    return best_traders
+    return best_sellers
 
 def get_current_token_price(token_address, api_key):
     """
@@ -273,18 +214,16 @@ def get_current_token_price(token_address, api_key):
     url = f"https://api.helius.xyz/v0/addresses/{token_address}/transactions"
     params = {
         "api-key": api_key,
-        "limit": 75  # Look at 20 recent transactions
+        "limit": 75  # Look at recent transactions
     }
     
     try:
         response = requests.get(url, params=params)
         if response.status_code != 200:
-            #print("Could not fetch recent transactions for pricing")
             return 0
             
         transactions = response.json()
         if not transactions or len(transactions) == 0:
-            #print("No recent transactions found for pricing")
             return 0
             
         # Track all price points we find
@@ -316,7 +255,6 @@ def get_current_token_price(token_address, api_key):
         return try_get_price_from_metadata(token_address, api_key)
         
     except Exception as e:
-        #print(f"Error getting current token price: {e}")
         return 0
 
 def try_get_price_from_metadata(token_address, api_key):
@@ -330,11 +268,7 @@ def try_get_price_from_metadata(token_address, api_key):
     Returns:
         float: Estimated price or 0 if not found
     """
-    # This is a placeholder for potential integration with price APIs
-    # You could integrate with Jupiter, Raydium, or other Solana DEXes here
-    #print("No price data from transactions, trying Jupiter API...")
-    
-    # For now, we'll just look at metadata
+    # Try to get token metadata
     metadata_url = f"https://api.helius.xyz/v0/tokens/metadata?api-key={api_key}"
     response = requests.post(metadata_url, json={"mintAccounts": [token_address]})
     
@@ -342,13 +276,9 @@ def try_get_price_from_metadata(token_address, api_key):
         metadata = response.json()
         if metadata and len(metadata) > 0:
             pass
-            ##print(f"Token metadata found: {metadata[0].get('name', 'Unknown')}")
-            # Some tokens include price info in metadata, but most don't
-            # This is a simple placeholder
-            
-    # If all else fails, return a small default value
-    # In a real implementation, you'd want to fetch from a DEX API
-    return 0.000001  # Default tiny price if we can't determine real price
+    
+    # Default tiny price if we can't determine real price
+    return 0.000001
 
 def try_alternative_endpoints(token_address, api_key):
     """
@@ -368,7 +298,6 @@ def try_alternative_endpoints(token_address, api_key):
     if response.status_code == 200:
         metadata = response.json()
         if metadata and len(metadata) > 0:
-            #print(f"Token metadata found: {metadata[0].get('name', 'Unknown')}")
             return {"token_info": metadata[0]}
     
     # Try to get active wallets directly
@@ -378,21 +307,21 @@ def try_alternative_endpoints(token_address, api_key):
     
     if response.status_code == 200:
         active_data = response.json()
-        #print(f"Found {len(active_data.get('data', []))} active wallets")
         return {"active_wallets": active_data.get('data', [])}
     
     return {"error": "No alternative data found"}
 
 def zenithfinderbot(token_addresses):
-    # Replace with your actual token address and API key
-    token_addresses = token_addresses
-    #token_address = 'CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump'
+    # API key
     api_key = '939594ba-3f6d-4c8d-bd74-b13abd0bc4a9'
+    
+    # Clear previous results
+    all_wallets.clear()
     
     for token_address in token_addresses:
         time.sleep(5)
         
-        # Skip the first 100,000 transactions
+        # Skip the first transaction
         skip_count = 1
         
         # Find the best traders after skipping transactions
@@ -401,64 +330,33 @@ def zenithfinderbot(token_addresses):
         
         # If no traders found, try alternative methods
         if not best_traders:
-            #print("\nAttempting to find alternative information about this token...")
             alt_info = try_alternative_endpoints(token_address, api_key)
             
             if "active_wallets" in alt_info and alt_info["active_wallets"]:
-                pass
                 wallets = alt_info["active_wallets"]
-                #print(f"\nTop Active Wallet Addresses:")
-                #for i, wallet in enumerate(wallets[:75], 1):
-                    ##print(f"{wallet.get('wallet', 'Unknown')}")
-            else:
-                pass
-                
-                ##print("\nNo wallet addresses found")
-            return
+            return {}
         
-        # Display only wallet addresses
-        ##print(f"\nTop Wallet Addresses:")
-        for trader in best_traders[:-1]:
-            #print(f"{trader['wallet']}")
+        # Collect only wallets that have made profitable sells
+        for trader in best_traders:
             good_wallets.append(trader['wallet'])
-            #print(good_wallets)
+        
         all_wallets.append(good_wallets)
     
-    common_addresses = { "No Addresses Found": 0}
+    # Find common addresses across tokens
+    common_addresses = {"No Addresses Found": 0}
 
-    from collections import Counter
-
-    def count_elements(all_addresses):
-        # Flatten the list of lists into a single list
-        flat_list = [item for sublist in all_addresses for item in sublist]
-        if len(flat_list) > 0:
-            counter = Counter(flat_list)
-        # Get the 50 most common elements and create a new Counter
-            return Counter(dict(counter.most_common(50)))
-        else:
-            return []
+    # Count occurrences of each wallet across all tokens
+    flat_list = [item for sublist in all_wallets for item in sublist]
+    
+    if flat_list:
+        counts = Counter(flat_list)
         
+        # Filter for wallets that appear in multiple token lists
+        common_addresses = {key: value for key, value in counts.items() if value > 1}
         
-
-    # Example usage
-
-    counts = count_elements(all_wallets)
-    print(counts)
-
-    #print("Element Counts:")
-    for key, value in counts.items():
-        if value > 1:
-            common_addresses[key] = value
+        # If no common addresses found, keep the default
+        if not common_addresses:
+            common_addresses = {"No Addresses Found": 0}
     
     print(common_addresses)
-    return(common_addresses)
-        
-    
-    
-
-    ##print(common_addresses)
-
-#if __name__ == "__main__":
-   # main()
-   
-##print(zenithfinderbot(['CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump','2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump']))
+    return common_addresses
