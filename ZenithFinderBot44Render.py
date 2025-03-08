@@ -341,6 +341,7 @@ def main():
     application.add_handler(CommandHandler("stop", stop))
     application.add_handler(CommandHandler("list", list_addresses))
     application.add_handler(CommandHandler("help", help))
+    application.add_handler(CommandHandler("get_result", get_result))
 
     # Setup web application
     web_app = web.Application()
