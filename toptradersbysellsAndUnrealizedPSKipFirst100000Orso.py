@@ -4,7 +4,7 @@ from datetime import datetime
 from collections import defaultdict
 import time
 all_wallets = []
-def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=90):
+def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, max_pages=40):
     """
     Find the best traders for a specific Solana token using Helius API,
     starting after a specific number of transactions
@@ -207,7 +207,7 @@ def find_best_traders(token_address, api_key, limit=100, skip_transactions=1, ma
                             'value': value
                         })
         except Exception as e:
-            #print(f"Error processing transaction: {e}")
+            print(f"Error processing transaction: {e}")
             continue
     
     # Get current token price
@@ -387,7 +387,7 @@ def zenithfinderbot(token_addresses):
     # Replace with your actual token address and API key
     token_addresses = token_addresses
     #token_address = 'CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump'
-    api_key = '9cace635-de24-4fe6-8a42-db3f605b77fc'
+    api_key = '939594ba-3f6d-4c8d-bd74-b13abd0bc4a9'
     
     for token_address in token_addresses:
         time.sleep(5)
@@ -418,7 +418,7 @@ def zenithfinderbot(token_addresses):
         
         # Display only wallet addresses
         ##print(f"\nTop Wallet Addresses:")
-        for trader in best_traders[:75]:
+        for trader in best_traders[:-1]:
             #print(f"{trader['wallet']}")
             good_wallets.append(trader['wallet'])
             #print(good_wallets)
@@ -431,6 +431,10 @@ def zenithfinderbot(token_addresses):
     def count_elements(all_addresses):
         # Flatten the list of lists into a single list
         flat_list = [item for sublist in all_addresses for item in sublist]
+        if len(flat_list) > 0:
+            return Counter(flat_list)
+        else:
+            return []
         
         # Use Counter to count occurrences of each element
         return Counter(flat_list)
@@ -438,14 +442,16 @@ def zenithfinderbot(token_addresses):
     # Example usage
 
     counts = count_elements(all_wallets)
+    print(counts)
 
     #print("Element Counts:")
     for key, value in counts.items():
         if value > 1:
             common_addresses[key] = value
-            return(common_addresses)
-        return(common_addresses)
     
+    print(common_addresses)
+    return(common_addresses)
+        
     
     
 
