@@ -12,6 +12,7 @@ from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import zenithfinderbot
 from aiohttp import web
 from pyngrok import ngrok
 import logging
+import re
 import sys
 import os
 from keep_alive import keep_alive
@@ -26,6 +27,8 @@ logging.basicConfig(
 
 ELIGIBLE_USER_IDS = [6364570277, 8160840495, 987654321]
 thread_pool = ThreadPoolExecutor(max_workers=10)  # Limit concurrent operations
+# Add this at the top level of your module, with your other imports
+get_results = ""  # Initialize with empty string
 
 def check_user_eligibility(user_id: int) -> bool:
     return user_id in ELIGIBLE_USER_IDS
@@ -142,6 +145,8 @@ async def process_list_command(update: Update, addresses: List[str]):
         
         await update.message.reply_text(result_message, parse_mode='MarkdownV2')
         await update.message.reply_text("Command completed successfully")
+        global get_results
+        get_results = result_message
     except Exception as e:
         logging.error(f"Error processing list command for user {user_id}: {str(e)}")
         await update.message.reply_text(f"Error checking addresses: {str(e)}")
@@ -169,7 +174,22 @@ async def list_addresses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Optional: you can track which variant was used if needed
     logging.info(f"User {user_id} used list variant: {list_variant or 'default'}")
-
+    
+async def get_result(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global get_results
+    user_id = update.effective_user.id
+    if not check_user_eligibility(user_id):
+        await update.message.reply_text("Sorry, you are not eligible to use this bot.")
+        return
+    one = r'[0-9A-HJ-NP-Za-km-z]{32,44}'
+    twi = r'\b[1-9A-HJ-NP-Za-km-z]{32,44}\b'
+    combined_pattern = r'[0-9A-HJ-NP-Za-km-z]{32,44}|\b[1-9A-HJ-NP-Za-km-z]{32,44}\b'
+    all_addresses = re.findall(combined_pattern, get_results)
+    send = ""
+    for address in all_addresses:
+        send += address + "\n"
+    await update.message.reply_text(send)
+    
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not check_user_eligibility(user_id):
@@ -195,6 +215,7 @@ You can then use tools like Gmgn website/bot, Cielo and so on to check the winra
     
     await update.message.reply_text(help_text)
     
+# Home page handler
 async def home_page(request):
     """Handle requests to the home page"""
     html = """
