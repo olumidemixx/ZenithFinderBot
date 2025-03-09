@@ -18,6 +18,8 @@ import os
 from keep_alive import keep_alive
 
 BOT_TOKEN = '7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
+mevs = ["CapuXNQoDviLvU1PxFiizLgPNQCxrsag1uMeyk6zLVps", "9WASiHk5PRbrh9hN6gyJfzhzRoVTwdZ2tQ6V3FiZ4ioC", "4xDsmeTWPNjgSVSS1VTfzFq3iHZhp77ffPkAmkZkdu71", "6U91aKa8pmMxkJwBCfPTmUEfZi6dHe7DcFq2ALvB2tbB", "28VdJ4eHYYhtUQRbr84tpfbptJ6WxENznXq6C6jsBmGq", "2ZakJN5DsTbsXG8CtcVVjzgxxGiVNdSKqXkMCvdyWEG3", "D9HCUnhgPzJZAYYgbYgHMnaowPxeZxxAN7Vor2Euk4vQ", "PNLCQcVCD26aC7ZWgRyr5ptfaR7bBrWdTFgRWwu2tvF", "D8BcZvfbb6YEsRf3ahJiX1Dh3BrgQrcXfEVUH9Twe6vP", "F5feZY6op9844iDdwt1YWP7WnqYXJQPx5yLqhLasnhCu", "6LXutJvKUw8Q5ue2gCgKHQdAN4suWW8awzFVC6XCguFx", "35zGqZ2YWSYY83VATUSwARJbeLQAkLT3JQDR2JpvHiiq", "9nnLbotNTcUhvbrsA6Mdkx45Sm82G35zo28AqUvjExn8", "GGztQqQ6pCPaJQnNpXBgELr5cs3WwDakRbh1iEMzjgSJ", "BQ72nSv9f3PRyRKCBnHLVrerrv37CYTHm5h3s9VSGQDV", "2MFoS3MPtvyQ4Wh4M9pdfPjz6UhVoNbFbGJAskCPCj3h", "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1", "HvFdDWS3RqymRAVx1ZdoL2RjiC38r5dtt19Z8op5jqDK", "2QfBNK2WDwSLoUQRb1zAnp3KM12N9hQ8q6ApwUMnWW2T", "H83cyy3bRDYHLEgPThBkuNfqgAntVU4iSdwGfksw2Dqf", "2S4SJ9Ffyuvu246xc54buoJg6gZ7wQePoKFwSA3X7Vt3", "G8NtWGr8yEyhUkYcjAqsK8seYtE5FgYVV2BHjiHGdLBB", "7dGrdJRYtsNR8UYxZ3TnifXGjGc9eRYLq9sELwYpuuUu", "3LmisiDWiozjaiJtKBxXCszWCZynCLUkvuuUAfpctqFg", "7DjBo7Tq5BxaMXSKWk5KY3XD5eKEtkSN8R68CfAATxbr"]
+
 
 # Configure logging
 logging.basicConfig(
@@ -142,6 +144,9 @@ async def process_list_command(update: Update, addresses: List[str]):
         for addr, count in results.items():
             if addr and count is not None:
                 result_message += f"Address: `{addr}`\nNumber of common tokens: {count}\n\n"
+
+            elif addr in mevs:
+                continue
         
         await update.message.reply_text(result_message, parse_mode='MarkdownV2')
         await update.message.reply_text("Command completed successfully")
