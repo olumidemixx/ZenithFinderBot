@@ -142,11 +142,12 @@ async def process_list_command(update: Update, addresses: List[str]):
             
         result_message = "Here's the List of Good Addresses and the number of Common Tokens:\n\n"
         for addr, count in results.items():
-            if addr and count is not None:
-                result_message += f"Address: `{addr}`\nNumber of common tokens: {count}\n\n"
+            
+            if addr and count is not None :
+                if addr not in mevs:
+                    result_message += f"Address: `{addr}`\nNumber of common tokens: {count}\n\n"
 
-            elif addr in mevs:
-                continue
+            
         
         await update.message.reply_text(result_message, parse_mode='MarkdownV2')
         await update.message.reply_text("Command completed successfully")
