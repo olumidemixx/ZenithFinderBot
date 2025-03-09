@@ -419,7 +419,7 @@ def zenithfinderbot(token_addresses):
         
         # Display only wallet addresses
         ##print(f"\nTop Wallet Addresses:")
-        for trader in best_traders[:-1]:
+        for trader in best_traders[:100]:
             if trader not in mevs:
             #print(f"{trader['wallet']}")
                 good_wallets.append(trader['wallet'])
