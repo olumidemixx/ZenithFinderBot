@@ -325,18 +325,21 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     help_text = """This is all you need to know to use the bot:
 
-There are Three commands: /start /list /help
+There are 4 commands: /start /th /tt /help
 
-Although /list comes in different formats e.g /list1, /list2 etc.
 
-To use any /list format, use 2 - 10 tokens
+
+To use the /tt and /th  format, use 2 - 5 tokens
 
 For instance:
-/list 8FqXr6dw5NHA2TtwFeDz6q9p7y9uWyoEdZmpXqqUpump, 7mHCx9iXPJ7EJDbDAUGmej39Kme8cxZfeVi1EAvEpump
+/tt 8FqXr6dw5NHA2TtwFeDz6q9p7y9uWyoEdZmpXqqUpump, 7mHCx9iXPJ7EJDbDAUGmej39Kme8cxZfeVi1EAvEpump
+
+/tt is great for finding smart traders and insiders
+/th is great for finding smart whales
 
 Each token should be separated by a comma and a space afterwards.
 
-I'll advise you input between 8 - 10 tokens to get the common addresses between them
+I'll advise you input between 4 - 5 tokens to get the common addresses between them
 
 You can then use tools like Gmgn website/bot, Cielo and so on to check the winrate and other qualities of these common addresses"""
     
