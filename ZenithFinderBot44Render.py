@@ -14,7 +14,7 @@ import logging
 import re
 import sys
 import os
-from Dragon import TopTraders
+
 
 BOT_TOKEN = '7830166385:AAHG2C3R_uut1ptcjQAoF78NRbs4cUYPXiU'#'7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
 
