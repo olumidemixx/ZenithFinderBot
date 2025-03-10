@@ -1,0 +1,16 @@
+colorama
+tls_client
+fake_useragent
+typing_extensions
+telegram 
+requests
+
+
+aiohttp
+pyngrok
+python-telegram-bot
+python-telegram-bot[webhooks]
+flask
+flask[async]
+
+urllib3

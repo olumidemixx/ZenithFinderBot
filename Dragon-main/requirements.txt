@@ -1,0 +1,4 @@
+colorama
+tls_client
+fake_useragent
+typing_extensions
