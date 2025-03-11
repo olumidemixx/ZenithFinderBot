@@ -24,7 +24,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-ELIGIBLE_USER_IDS = [6364570277, 8160840495, 987654321]
+ELIGIBLE_USER_IDS = [6364570277, 8160840495, 7172794326, 5825587838, 1786613658]
 thread_pool = ThreadPoolExecutor(max_workers=10)  # Limit concurrent operations
 # Add this at the top level of your module, with your other imports
 get_results = ""  # Initialize with empty string
@@ -124,18 +124,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not check_user_eligibility(user_id):
         await update.message.reply_text("Sorry, you are not eligible to use this bot.")
         return
+    await update.message.reply_text("Welcome, Try the /tt or /th command 2 more times if you do not get an address as an output\nIf you do not get any wallets still, then there are no outputs\nIf not, you get your wallets\n\nUse the /help command to learn how to use me.  ")
+
     
     checker = bot_manager.get_or_create_checker(user_id)
     if not checker.is_running:
         checker.task = asyncio.create_task(checker.start_checking())
-        await update.message.reply_text("Bot started. Now monitoring addresses for your session.")
+        await update.message.reply_text("Join t.me/Smart_Money_Buy to get alpha calls by Zenith Bot")
     else:
         await update.message.reply_text("Your bot session is already running.")
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not check_user_eligibility(user_id):
-        await update.message.reply_text("Sorry, you are not eligible to use this bot.")
+        await update.message.reply_text("Sorry, you are not eligible to use this bot.\n contact @thegroovymate to test it out")
         return
     
     checker = bot_manager.get_or_create_checker(user_id)
