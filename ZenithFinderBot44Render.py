@@ -252,6 +252,8 @@ async def tt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Create a new task for this specific request
     # This allows multiple requests to run concurrently
     asyncio.create_task(process_list_command(update, addresses))
+    await update.message.reply_text("Use @GMGN_smartmoney_bot or Cielo to filter the wallets based on winrate and Pnls")
+
     
     # Optional: you can track which variant was used if needed
     logging.info(f"User {user_id} used list variant: {list_variant or 'default'}")
@@ -288,13 +290,14 @@ async def th(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.replace(command, '').strip()
     addresses = [addr.strip() for addr in text.split(',') if addr.strip()]
 
-    if not 2 <= len(addresses) <= 10:
-        await update.message.reply_text("Please provide between 2 and 10 addresses.")
+    if not 2 <= len(addresses) <= 5:
+        await update.message.reply_text("Please provide between 2 and 5 addresses.")
         return
 
     # Create a new task for this specific request
     # This allows multiple requests to run concurrently
     asyncio.create_task(process_list_command_th(update, addresses))
+    await update.message.reply_text("Use @GMGN_smartmoney_bot or Cielo to filter the wallets based on winrate and Pnls")
 
 
 async def ea(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -317,6 +320,8 @@ async def ea(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Create a new task for this specific request
     # This allows multiple requests to run concurrently
     asyncio.create_task(process_list_command_ea(update, addresses))
+    await update.message.reply_text("Use @GMGN_smartmoney_bot or Cielo to filter the wallets based on winrate and Pnls")
+
 
     
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
