@@ -6,7 +6,7 @@ import asyncio
 from typing import List, Set, Dict
 import time
 from concurrent.futures import ThreadPoolExecutor
-from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import topTraders,earlyBuyers,topHolders
+from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import topTraders,earlyBuyers,topHolders,single_topTraders,single_topHolders
 
 from aiohttp import web
 from pyngrok import ngrok
@@ -16,7 +16,8 @@ import sys
 import os
 
 
-BOT_TOKEN = '7830166385:AAHG2C3R_uut1ptcjQAoF78NRbs4cUYPXiU'#'7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU'
+BOT_TOKEN = '7971111200:AAFXXq0qrlA_TTaotF-aAN98YEeTr8ZMRAU' #'7830166385:AAHG2C3R_uut1ptcjQAoF78NRbs4cUYPXiU'#
+
 
 # Configure logging
 logging.basicConfig(
@@ -74,6 +75,33 @@ class UserTokenChecker:
         finally:
             self.active_requests -= 1  # Decrement when done
 
+
+    async def check_addresses_async_stt(self, addresses: List[str]) -> Dict[str, str]:
+        self.active_requests += 1  # Increment active request counter
+        try:
+            return await asyncio.get_event_loop().run_in_executor(
+                thread_pool, 
+                single_topTraders, 
+                addresses
+            )
+        finally:
+            self.active_requests -= 1  # Decrement when done
+            
+    
+    async def check_addresses_async_sth(self, addresses: List[str]) -> Dict[str, str]:
+        self.active_requests += 1  # Increment active request counter
+        try:
+            return await asyncio.get_event_loop().run_in_executor(
+                thread_pool, 
+                single_topHolders, 
+                addresses
+            )
+        finally:
+            self.active_requests -= 1  # Decrement when done
+
+
+
+
     async def check_addresses_async_ea(self, addresses: List[str]) -> Dict[str, str]:
         self.active_requests += 1  # Increment active request counter
         try:
@@ -125,7 +153,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Sorry, you are not eligible to use this bot.")
         return
     await update.message.reply_text("Welcome, Try the /tt or /th command 2 more times if you do not get an address as an output\nIf you do not get any wallets still, then there are no outputs\nIf not, you get your wallets\n\nUse the /help command to learn how to use me.  ")
-
+    
     
     checker = bot_manager.get_or_create_checker(user_id)
     if not checker.is_running:
@@ -200,6 +228,63 @@ async def process_list_command_th(update: Update, addresses: List[str]):
     except Exception as e:
         logging.error(f"Error processing list command for user {user_id}: {str(e)}")
         await update.message.reply_text(f"Error checking addresses: {str(e)}")
+        
+        
+        
+async def process_list_command_stt(update: Update, addresses: List[str]):
+    """Process a single list command independent of other users' commands"""
+    user_id = update.effective_user.id
+    checker = bot_manager.get_or_create_checker(user_id)
+    
+    try:
+        await update.message.reply_text("Processing addresses, please wait...")
+        results = await checker.check_addresses_async_stt(addresses)
+        
+        if results is None or not results:
+            await update.message.reply_text("No common addresses found between these tokens.")
+            return
+            
+        result_message = "Here's the Top 40 Top Traders:\n\n"
+        for addr, count in results.items():
+            if addr and count is not None:
+                result_message += f"`{addr}`\n"
+        
+        await update.message.reply_text(result_message, parse_mode='MarkdownV2')
+        await update.message.reply_text("Command completed successfully")
+        global get_results
+        get_results = result_message
+    except Exception as e:
+        logging.error(f"Error processing list command for user {user_id}: {str(e)}")
+        await update.message.reply_text(f"Error checking addresses: {str(e)}")
+        
+        
+        
+async def process_list_command_sth(update: Update, addresses: List[str]):
+    """Process a single list command independent of other users' commands"""
+    user_id = update.effective_user.id
+    checker = bot_manager.get_or_create_checker(user_id)
+    
+    try:
+        await update.message.reply_text("Processing addresses, please wait...")
+        results = await checker.check_addresses_async_sth(addresses)
+        
+        if results is None or not results:
+            await update.message.reply_text("No common addresses found between these tokens.")
+            return
+            
+        result_message = "Here's the Top 40 Top Holders:\n\n"
+        for addr, count in results.items():
+            if addr and count is not None:
+                result_message += f"`{addr}`\n"
+        
+        await update.message.reply_text(result_message, parse_mode='MarkdownV2')
+        await update.message.reply_text("Command completed successfully")
+        global get_results
+        get_results = result_message
+    except Exception as e:
+        logging.error(f"Error processing list command for user {user_id}: {str(e)}")
+        await update.message.reply_text(f"Error checking addresses: {str(e)}")
+
 
 
 
@@ -245,15 +330,38 @@ async def tt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.replace(command, '').strip()
     addresses = [addr.strip() for addr in text.split(',') if addr.strip()]
 
-    if not 2 <= len(addresses) <= 5:
-        await update.message.reply_text("Please provide between 2 and 5 addresses.")
+    if not 2 <= len(addresses) <= 10:
+        await update.message.reply_text("Please provide between 2 and 10 addresses.")
         return
 
     # Create a new task for this specific request
     # This allows multiple requests to run concurrently
     asyncio.create_task(process_list_command(update, addresses))
-    await update.message.reply_text("Use @GMGN_smartmoney_bot or Cielo to filter the wallets based on winrate and Pnls")
+    
+    # Optional: you can track which variant was used if needed
+    logging.info(f"User {user_id} used list variant: {list_variant or 'default'}")
+    
 
+async def stt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not check_user_eligibility(user_id):
+        await update.message.reply_text("Sorry, you are not eligible to use this bot.")
+        return
+
+    # Extract command name to handle different list variants
+    command = update.message.text.split()[0].lower()
+    list_variant = command.replace('/stt', '')  # Will be empty for /list or have a number for /list1, /list2, etc.
+    
+    text = update.message.text.replace(command, '').strip()
+    addresses = [addr.strip() for addr in text.split(',') if addr.strip()]
+
+    if len(addresses) != 1:
+        await update.message.reply_text("Please provide only  1 address.")
+        return
+
+    # Create a new task for this specific request
+    # This allows multiple requests to run concurrently
+    asyncio.create_task(process_list_command_stt(update, addresses))
     
     # Optional: you can track which variant was used if needed
     logging.info(f"User {user_id} used list variant: {list_variant or 'default'}")
@@ -290,14 +398,38 @@ async def th(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.replace(command, '').strip()
     addresses = [addr.strip() for addr in text.split(',') if addr.strip()]
 
-    if not 2 <= len(addresses) <= 5:
-        await update.message.reply_text("Please provide between 2 and 5 addresses.")
+    if not 2 <= len(addresses) <= 10:
+        await update.message.reply_text("Please provide between 2 and 10 addresses.")
         return
 
     # Create a new task for this specific request
     # This allows multiple requests to run concurrently
     asyncio.create_task(process_list_command_th(update, addresses))
-    await update.message.reply_text("Use @GMGN_smartmoney_bot or Cielo to filter the wallets based on winrate and Pnls")
+    
+    
+
+async def sth(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not check_user_eligibility(user_id):
+        await update.message.reply_text("Sorry, you are not eligible to use this bot.")
+        return
+
+    # Extract command name to handle different list variants
+    command = update.message.text.split()[0].lower()
+    list_variant = command.replace('/sth', '')  # Will be empty for /list or have a number for /list1, /list2, etc.
+    
+    text = update.message.text.replace(command, '').strip()
+    addresses = [addr.strip() for addr in text.split(',') if addr.strip()]
+
+    if  len(addresses) !=  1:
+        await update.message.reply_text("Please provide only 1 address.")
+        return
+
+    # Create a new task for this specific request
+    # This allows multiple requests to run concurrently
+    asyncio.create_task(process_list_command_sth(update, addresses))
+
+
 
 
 async def ea(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -320,8 +452,6 @@ async def ea(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Create a new task for this specific request
     # This allows multiple requests to run concurrently
     asyncio.create_task(process_list_command_ea(update, addresses))
-    await update.message.reply_text("Use @GMGN_smartmoney_bot or Cielo to filter the wallets based on winrate and Pnls")
-
 
     
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -332,21 +462,18 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     help_text = """This is all you need to know to use the bot:
 
-There are 4 commands: /start /th /tt /help
+There are Three commands: /start /list /help
 
+Although /list comes in different formats e.g /list1, /list2 etc.
 
-
-To use the /tt and /th  format, use 2 - 5 tokens
+To use any /list format, use 2 - 10 tokens
 
 For instance:
-/tt 8FqXr6dw5NHA2TtwFeDz6q9p7y9uWyoEdZmpXqqUpump, 7mHCx9iXPJ7EJDbDAUGmej39Kme8cxZfeVi1EAvEpump
-
-/tt is great for finding smart traders and insiders
-/th is great for finding smart whales
+/list 8FqXr6dw5NHA2TtwFeDz6q9p7y9uWyoEdZmpXqqUpump, 7mHCx9iXPJ7EJDbDAUGmej39Kme8cxZfeVi1EAvEpump
 
 Each token should be separated by a comma and a space afterwards.
 
-I'll advise you input between 4 - 5 tokens to get the common addresses between them
+I'll advise you input between 8 - 10 tokens to get the common addresses between them
 
 You can then use tools like Gmgn website/bot, Cielo and so on to check the winrate and other qualities of these common addresses"""
     
@@ -478,6 +605,8 @@ def main():
     application.add_handler(CommandHandler("stop", stop))
     application.add_handler(CommandHandler(["tt", "tt1", "tt2", "tt3", "tt4", "tt5"], tt))
     application.add_handler(CommandHandler(["th", "th1", "th2", "th3", "th4", "th5"], th))
+    application.add_handler(CommandHandler(["stt", "stt1", "stt2", "stt3", "stt4", "stt5"], stt))
+    application.add_handler(CommandHandler(["sth", "sth1", "sth2", "sth3", "sth4", "sth5"], sth))
     application.add_handler(CommandHandler(["ea", "ea1", "ea2", "ea3", "ea4", "ea5"], ea))
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("get_result", get_result))
