@@ -337,6 +337,8 @@ async def tt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Create a new task for this specific request
     # This allows multiple requests to run concurrently
     asyncio.create_task(process_list_command(update, addresses))
+    await update.message.reply_text("Use @GMGN_smartmoney_bot or Cielo to filter the wallets based on winrate and Pnls")
+
     
     # Optional: you can track which variant was used if needed
     logging.info(f"User {user_id} used list variant: {list_variant or 'default'}")
@@ -405,6 +407,8 @@ async def th(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Create a new task for this specific request
     # This allows multiple requests to run concurrently
     asyncio.create_task(process_list_command_th(update, addresses))
+    await update.message.reply_text("Use @GMGN_smartmoney_bot or Cielo to filter the wallets based on winrate and Pnls")
+
     
     
 
