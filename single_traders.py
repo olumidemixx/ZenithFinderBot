@@ -157,3 +157,13 @@ class TopTraders:
 
         result = {key: 0 for key in alladdresses}
         return result
+    
+def single_topTraders(contractAddresses):
+    
+   
+    topTraders = TopTraders()
+    
+    # Replace with your actual token address and API key
+    
+    data = topTraders.topTraderData(contractAddresses, threads = 40, useProxies = False)
+    
