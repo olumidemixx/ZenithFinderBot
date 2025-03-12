@@ -153,3 +153,14 @@ class EarlyBuyers:
         
         
         return repeatedAddresses
+    
+def earlyBuyers(contractAddresses):
+    
+    earlyBuyers = EarlyBuyers()
+    # Replace with your actual token address and API key
+    
+    data = earlyBuyers.earlyBuyersdata(contractAddresses, threads = 40, useProxies = False, buyers = 30)
+    
+
+    #result = {key: 0 for key in data}
+    return data
