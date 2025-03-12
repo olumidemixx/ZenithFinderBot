@@ -25,7 +25,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-ELIGIBLE_USER_IDS = [6364570277, 8160840495, 7172794326, 5825587838, 1786613658]
+ELIGIBLE_USER_IDS = [6364570277, 8160840495, 7172794326, 5825587838, 1786613658, 6058881388]
 thread_pool = ThreadPoolExecutor(max_workers=10)  # Limit concurrent operations
 # Add this at the top level of your module, with your other imports
 get_results = ""  # Initialize with empty string
