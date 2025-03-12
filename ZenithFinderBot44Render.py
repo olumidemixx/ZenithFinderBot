@@ -490,7 +490,10 @@ For instance:
 
 Each token should be separated by a comma and a space afterwards.
 
-You can then use tools like Gmgn website/bot, Cielo and so on to check the winrate and other qualities of these common addresses"""
+You can then use tools like Gmgn website/bot, Cielo and so on to check the winrate and other qualities of these common addresses
+
+Contact @TheGroovyMate to test the Vip bot  and follow him on Twitter at: https://x.com/Groovy_mate
+"""
     
     await update.message.reply_text(help_text)
     
