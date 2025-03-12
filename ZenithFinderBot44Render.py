@@ -6,8 +6,12 @@ import asyncio
 from typing import List, Set, Dict
 import time
 from concurrent.futures import ThreadPoolExecutor
-from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import topTraders,earlyBuyers,topHolders,single_topTraders,single_topHolders
-
+#from toptradersbysellsAndUnrealizedPSKipFirst100000Orso import topTraders,earlyBuyers,topHolders,single_topTraders,single_topHolders
+from traders import topTraders
+from holders import topHolders
+from earlyBuyers import earlyBuyers
+from single_traders import single_topTraders
+from single_holders import single_topHolders
 from aiohttp import web
 from pyngrok import ngrok
 import logging
