@@ -184,6 +184,7 @@ async def process_list_command(update: Update, addresses: List[str]):
     try:
         await update.message.reply_text("Processing addresses, please wait...")
         results = await checker.check_addresses_async(addresses)
+        logging.info(results)
         
         if results is None or not results:
             await update.message.reply_text("No common addresses found between these tokens.")
