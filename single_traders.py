@@ -96,7 +96,7 @@ class TopTraders:
 
     def fetchTopTraders(self, contractAddress: str, useProxies):
         url = f"https://gmgn.ai/defi/quotation/v1/tokens/top_traders/sol/{contractAddress}?orderby=profit&direction=desc"
-        retries = 3
+        retries = 5
 
         for attempt in range(retries):
             try:
@@ -110,7 +110,7 @@ class TopTraders:
             except Exception as e:
                 print(f"[🐲] Error fetching data on attempt, trying backup... {e}")
                     
-            time.sleep(1)
+            time.sleep(5)
         
         print(f"[🐲] Failed to fetch data after {retries} attempts.")
         return []
