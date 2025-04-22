@@ -1,3 +1,4 @@
+python-dotenv
 colorama
 tls_client
 fake_useragent
