@@ -198,7 +198,7 @@ class TopHolders:
         
         repeatedAddresses = {address: count for address, count in self.addressFrequency.items() if count > 1}
         print("TOP SINGLE HOLDERS")
-        alladdresses = list(self.allAddresses)[:40]
+        alladdresses = list(self.allAddresses)[:50]
         print(alladdresses)
 
 
