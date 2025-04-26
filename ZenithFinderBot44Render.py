@@ -12,6 +12,7 @@ from holders import topHolders
 from earlyBuyers import earlyBuyers
 from single_traders import single_topTraders
 from single_holders import single_topHolders
+from wallet_stats import wallet_stats
 from aiohttp import web
 from pyngrok import ngrok
 import logging
