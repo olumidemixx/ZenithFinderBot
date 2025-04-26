@@ -676,6 +676,7 @@ def main():
     application.add_handler(CommandHandler(["stt", "stt1", "stt2", "stt3", "stt4", "stt5"], stt))
     application.add_handler(CommandHandler(["sth", "sth1", "sth2", "sth3", "sth4", "sth5"], sth))
     application.add_handler(CommandHandler(["ea", "ea1", "ea2", "ea3", "ea4", "ea5"], ea))
+    application.add_handler(CommandHandler(["scan", "scan1", "scan2", "scan3", "scan4", "scan5"], scan))
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("get_result", get_result))
 
