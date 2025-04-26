@@ -389,10 +389,50 @@ async def get_result(update: Update, context: ContextTypes.DEFAULT_TYPE):
     twi = r'\b[1-9A-HJ-NP-Za-km-z]{32,44}\b'
     combined_pattern = r'[0-9A-HJ-NP-Za-km-z]{32,44}|\b[1-9A-HJ-NP-Za-km-z]{32,44}\b'
     all_addresses = re.findall(combined_pattern, get_results)
+    logging.info(all_addresses)
+    await update.message.reply_text("calculating...")
+    
+    # Create a text file to store wallet statistics
+    with open('wallet_statistics.txt', 'w') as f:
+        
+        stats = wallet_stats(all_addresses)
+        f.write(f"{stats}\n")
+        
+    
+    # Send the file as a document
+    await update.message.reply_document(
+        document=open('wallet_statistics.txt', 'rb'),
+        filename='wallet_statistics.txt'
+    )
+
+    
+    
+    
+    
+    
+async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    user_id = update.effective_user.id
+    if not check_user_eligibility(user_id):
+        await update.message.reply_text("Sorry, you are not eligible to use this bot.")
+        return 
+    command = update.message.text.split()[0].lower()
+    list_variant = command.replace('/scan', '')  # Will be empty for /list or have a number for /list1, /list2, etc.
+    
+    text = update.message.text.replace(command, '').strip()
+    address = [addr.strip() for addr in text.split(',') if addr.strip()]
+    
     send = ""
-    for address in all_addresses:
-        send += address + "\n"
+    
+
+    if len(address) != 1:
+        await update.message.reply_text("Please provide only  1 address.")
+        return
+    
+    send += wallet_stats(address) + "\n\n"
+    
     await update.message.reply_text(send)
+    
 
 
 
