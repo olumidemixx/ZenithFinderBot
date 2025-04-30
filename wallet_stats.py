@@ -212,10 +212,13 @@ class BulkWalletChecker:
             realizedProfit30dUSD = data.get('30dUSDProfit', 'N/A')
             buy7d = data.get('buy_7d', 'N/A')  # Get buy_7d, default to 'N/A' if missing
             winrate = data.get('winrate_7d', 'N/A')  # Get winrate, default to 'N/A' if missing
+            sol_balance = data.get('sol_balance', 'N/A')
+            tag = data.get('tags', [])
             
+            stats = f"{wallet}:\npnl = {totalProfitPercent},\n7d profit = {realizedProfit7dUSD},\n30d profit = {realizedProfit30dUSD},\n7d buys = {buy7d},\n7d winrate = {winrate},\nSol_Balance = {sol_balance},\ntags = {tag}"
             
             #stats =  str(wallet) + ":pnl = " + str(totalProfitPercent) + ", 7d profit = " + str(realizedProfit7dUSD) + ", 30d profit = " + str(realizedProfit30dUSD) + ", 7d buys = " + str(buy7d) + ", 7d winrate = " + str(winrate) + " "
-            stats = f"{wallet}:\npnl = {totalProfitPercent},\n7d profit = {realizedProfit7dUSD},\n30d profit = {realizedProfit30dUSD},\n7d buys = {buy7d},\n7d winrate = {winrate}"
+            #stats = f"{wallet}:\npnl = {totalProfitPercent},\n7d profit = {realizedProfit7dUSD},\n30d profit = {realizedProfit30dUSD},\n7d buys = {buy7d},\n7d winrate = {winrate}"
             all_stats.append(stats)
         
         return "\n\n".join(all_stats)  # Return all wallet stats joined with newlines
